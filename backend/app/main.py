@@ -1,8 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import feedback
+from app.database import engine,Base
+from app import models
 
 app = FastAPI()
+
+Base.metadata.create_all(bind=engine)
 
 # Allow React frontend to communicate with FastAPI backend
 app.add_middleware(
