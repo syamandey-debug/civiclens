@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.routes import feedback
 
 app = FastAPI()
 
@@ -12,7 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+app.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
 @app.get("/")
 def home():
     return {"message": "CivicLens Backend is working!"}
