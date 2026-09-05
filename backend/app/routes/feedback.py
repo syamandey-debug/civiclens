@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Depends
 from sqlalchemy.orm import Session
 import pandas as pd
-from pathlib import Path
+from datetime import datetime
 
 from app.database import SessionLocal
 from app.models import Feedback
@@ -18,6 +18,7 @@ def get_db():
         db.close()
 
 
+# Get all feedback
 @router.get("/")
 def get_feedback(db: Session = Depends(get_db)):
 
@@ -26,18 +27,32 @@ def get_feedback(db: Session = Depends(get_db)):
     return [
         {
             "id": item.id,
-            "original_text": item.original_text,
+            "comment_id": item.comment_id,
+            "comment": item.comment,
+            "language": item.language,
+            "date": item.date,
+            "location": item.location,
             "created_at": item.created_at
         }
         for item in feedback_list
     ]
 
 
+# Add a single feedback
 @router.post("/")
-def add_feedback(feedback: dict, db: Session = Depends(get_db)):
+def add_feedback(
+    feedback: dict,
+    db: Session = Depends(get_db)
+):
 
     new_feedback = Feedback(
-        original_text=feedback["original_text"]
+        comment_id=feedback["comment_id"],
+        comment=feedback["comment"],
+        language=feedback.get("language"),
+        date=datetime.strptime(
+            feedback["date"], "%d-%m-%Y"
+        ).date() if feedback.get("date") else None,
+        location=feedback.get("location")
     )
 
     db.add(new_feedback)
@@ -48,11 +63,16 @@ def add_feedback(feedback: dict, db: Session = Depends(get_db)):
         "message": "Feedback saved successfully",
         "feedback": {
             "id": new_feedback.id,
-            "original_text": new_feedback.original_text
+            "comment_id": new_feedback.comment_id,
+            "comment": new_feedback.comment,
+            "language": new_feedback.language,
+            "date": new_feedback.date,
+            "location": new_feedback.location
         }
     }
 
 
+# Upload CSV / Excel
 @router.post("/upload")
 async def upload_feedback(
     file: UploadFile = File(...),
@@ -70,20 +90,58 @@ async def upload_feedback(
             "error": "Only CSV and Excel files are supported"
         }
 
+    # Check required columns
+    required_columns = {
+        "comment_id",
+        "comment",
+        "language",
+        "date",
+        "location"
+    }
+
+    missing_columns = required_columns - set(df.columns)
+
+    if missing_columns:
+        return {
+            "error": "Missing required columns",
+            "missing_columns": list(missing_columns)
+        }
+
     saved_count = 0
 
     for _, row in df.iterrows():
 
-        # Change "feedback" if your CSV uses a different column name
-        if "comment" in df.columns:
-            text = row["comment"]
+        comment = str(row["comment"]).strip()
 
-            new_feedback = Feedback(
-                original_text=str(text)
+        if not comment:
+            continue
+
+        feedback_date = None
+
+        if pd.notna(row["date"]):
+            feedback_date = datetime.strptime(
+                str(row["date"]),
+                "%d-%m-%Y"
+            ).date()
+
+        new_feedback = Feedback(
+            comment_id=int(row["comment_id"]),
+            comment=comment,
+            language=(
+                str(row["language"]).strip()
+                if pd.notna(row["language"])
+                else None
+            ),
+            date=feedback_date,
+            location=(
+                str(row["location"]).strip()
+                if pd.notna(row["location"])
+                else None
             )
+        )
 
-            db.add(new_feedback)
-            saved_count += 1
+        db.add(new_feedback)
+        saved_count += 1
 
     db.commit()
 

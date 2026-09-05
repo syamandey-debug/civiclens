@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, Date, DateTime
 from datetime import datetime
 
 from app.database import Base
@@ -8,5 +8,11 @@ class Feedback(Base):
     __tablename__ = "feedback"
 
     id = Column(Integer, primary_key=True, index=True)
-    original_text = Column(String, nullable=False)
+
+    comment_id = Column(Integer, nullable=False)
+    comment = Column(String, nullable=False)
+    language = Column(String, nullable=True)
+    date = Column(Date, nullable=True)
+    location = Column(String, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
