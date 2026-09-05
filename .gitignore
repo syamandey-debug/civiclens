@@ -1,7 +1,7 @@
 # Python virtual environment
 backend/venv/
 backend/.venv/
-
+*.db
 # Node.js dependencies
 frontend/node_modules/
 
