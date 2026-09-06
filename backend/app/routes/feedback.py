@@ -45,7 +45,14 @@ def add_feedback(
     feedback: dict,
     db: Session = Depends(get_db)
 ):
+    existing_feedback = db.query(Feedback).filter(
+        Feedback.comment_id == feedback["comment_id"]
+    ).first()
 
+    if existing_feedback:
+        return {
+            "error": "Feedback with this comment_id already exists"
+        }
     new_feedback = Feedback(
         comment_id=feedback["comment_id"],
         comment=feedback["comment"],
@@ -132,14 +139,7 @@ async def upload_feedback(
 
         if existing_feedback:
             continue
-        existing_feedback = db.query(Feedback).filter(
-           Feedback.comment_id == feedback["comment_id"]
-        ).first()
-
-        if existing_feedback:
-            return {
-                "error": "Feedback with this comment_id already exists"
-            }
+        
         new_feedback = Feedback(
             comment_id=comment_id,
             comment=comment,
