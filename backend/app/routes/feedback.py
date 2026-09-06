@@ -5,6 +5,7 @@ from datetime import datetime
 
 from app.database import SessionLocal
 from app.models import Feedback
+from app.services.data_cleaning import clean_feedback_data
 
 router = APIRouter()
 
@@ -89,7 +90,7 @@ async def upload_feedback(
         return {
             "error": "Only CSV and Excel files are supported"
         }
-
+    df = clean_feedback_data(df)
     # Check required columns
     required_columns = {
         "comment_id",
@@ -123,9 +124,24 @@ async def upload_feedback(
                 str(row["date"]),
                 "%d-%m-%Y"
             ).date()
+        comment_id = int(row["comment_id"])
 
+        existing_feedback = db.query(Feedback).filter(
+        Feedback.comment_id == comment_id
+        ).first()
+
+        if existing_feedback:
+            continue
+        existing_feedback = db.query(Feedback).filter(
+           Feedback.comment_id == feedback["comment_id"]
+        ).first()
+
+        if existing_feedback:
+            return {
+                "error": "Feedback with this comment_id already exists"
+            }
         new_feedback = Feedback(
-            comment_id=int(row["comment_id"]),
+            comment_id=comment_id,
             comment=comment,
             language=(
                 str(row["language"]).strip()
