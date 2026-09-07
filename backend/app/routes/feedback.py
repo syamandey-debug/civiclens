@@ -31,6 +31,7 @@ def get_feedback(db: Session = Depends(get_db)):
             "comment_id": item.comment_id,
             "comment": item.comment,
             "language": item.language,
+            "translated_comment": item.translated_comment,
             "date": item.date,
             "location": item.location,
             "created_at": item.created_at
@@ -58,6 +59,7 @@ def add_feedback(
         comment_id=feedback["comment_id"],
         comment=feedback["comment"],
         language=feedback.get("language"),
+        translated_comment=feedback.get("translated_comment"),
         date=datetime.strptime(
             feedback["date"], "%d-%m-%Y"
         ).date() if feedback.get("date") else None,
@@ -75,6 +77,7 @@ def add_feedback(
             "comment_id": new_feedback.comment_id,
             "comment": new_feedback.comment,
             "language": new_feedback.language,
+            "translated_comment": new_feedback.translated_comment,
             "date": new_feedback.date,
             "location": new_feedback.location
         }
