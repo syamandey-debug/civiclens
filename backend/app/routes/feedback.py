@@ -6,7 +6,7 @@ from datetime import datetime
 from app.database import SessionLocal
 from app.models import Feedback
 from app.services.data_cleaning import clean_feedback_data
-
+from app.services.language_detection import detect_language
 router = APIRouter()
 
 
@@ -190,13 +190,11 @@ async def upload_feedback(
         # Language
         # -----------------------------
 
-        if "language" in df.columns and pd.notna(row["language"]):
+       # -----------------------------
+# Language
+# -----------------------------
 
-            language = str(row["language"]).strip()
-
-        else:
-
-            language = None
+        language = detect_language(comment)
 
 
         # -----------------------------
