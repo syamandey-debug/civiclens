@@ -140,6 +140,7 @@ async def upload_feedback(
             return {
                 "error": "Feedback with this comment_id already exists"
             }
+        
         new_feedback = Feedback(
             comment_id=comment_id,
             comment=comment,
