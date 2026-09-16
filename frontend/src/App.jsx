@@ -3,8 +3,113 @@ import "./index.css";
 
 function App() {
   const [file, setFile] = useState(null);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+const [selectedLanguage, setSelectedLanguage] = useState("All");
+const [selectedLocation, setSelectedLocation] = useState("All");
 
-  // Handle file selection
+  
+  
+  // =========================
+// LANGUAGE ANALYSIS
+// =========================
+
+const languageCounts = results.reduce((counts, item) => {
+  const language = item.language || "Unknown";
+
+  counts[language] = (counts[language] || 0) + 1;
+
+  return counts;
+}, {});
+
+const totalLanguages = Object.keys(languageCounts).length;
+
+// =========================
+// LOCATION ANALYSIS
+// =========================
+
+const locationCounts = results.reduce((counts, item) => {
+  const location = item.location || "Unknown";
+
+  counts[location] = (counts[location] || 0) + 1;
+
+  return counts;
+}, {});
+
+        // =========================
+// SENTIMENT ANALYSIS
+// =========================
+
+const sentimentCounts = results.reduce((counts, item) => {
+  const sentiment = item.sentiment;
+
+  if (!sentiment) {
+    return counts;
+  }
+
+  counts[sentiment] = (counts[sentiment] || 0) + 1;
+
+  return counts;
+}, {});
+
+const hasSentimentData =
+  Object.keys(sentimentCounts).length > 0;
+
+  // =========================
+// SEARCH AND FILTER
+// =========================
+
+const languages = [
+  "All",
+  ...new Set(
+    results.map((item) => item.language).filter(Boolean)
+  ),
+];
+
+const locations = [
+  "All",
+  ...new Set(
+    results.map((item) => item.location).filter(Boolean)
+  ),
+];
+
+const filteredResults = results.filter((item) => {
+  const matchesSearch = (item.comment || "")
+    .toLowerCase()
+    .includes(searchTerm.toLowerCase());
+
+  const matchesLanguage =
+    selectedLanguage === "All" ||
+    item.language === selectedLanguage;
+
+  const matchesLocation =
+    selectedLocation === "All" ||
+    item.location === selectedLocation;
+
+  return (
+    matchesSearch &&
+    matchesLanguage &&
+    matchesLocation
+  );
+});
+
+
+// =========================
+// CLEAR FILTERS
+// =========================
+
+const clearFilters = () => {
+  setSearchTerm("");
+  setSelectedLanguage("All");
+  setSelectedLocation("All");
+};
+
+// =========================
+  // HANDLE FILE SELECTION
+  // =========================
+
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
 
@@ -24,21 +129,33 @@ function App() {
     // Check file type
     if (!isValidFile) {
       alert("Please select a CSV or Excel file.");
+
       event.target.value = "";
+
       setFile(null);
+
       return;
     }
 
     // Store selected file
     setFile(selectedFile);
 
+    // Clear previous results
+    setResults([]);
+
+    setMessage("");
+
     console.log("Selected file:", selectedFile);
   };
 
-  // Handle upload button
+  // =========================
+  // HANDLE UPLOAD
+  // =========================
+
   const handleUpload = async () => {
     if (!file) {
       alert("Please select a CSV or Excel file first.");
+
       return;
     }
 
@@ -46,19 +163,56 @@ function App() {
 
     formData.append("file", file);
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/feedback/upload",
-      {
-        method: "POST",
-        body: formData,
+    try {
+      // Start loading
+      setLoading(true);
+
+      setMessage("");
+
+      // Send file to FastAPI
+      const response = await fetch(
+        "http://127.0.0.1:8000/feedback/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      // Check response status
+      if (!response.ok) {
+        throw new Error(
+          `Upload failed: ${response.status}`
+        );
       }
-    );
 
-    const data = await response.json();
+      // Read backend response
+      const data = await response.json();
 
-    console.log(data);
+      console.log(
+  "Backend response:",
+  JSON.stringify(data, null, 2)
+);
+      // Store processed results
+      if (Array.isArray(data.data)) {
+        setResults(data.data);
+      } else {
+        setResults([]);
+      }
 
-    alert("File uploaded successfully!");
+      // Success message
+      setMessage("File uploaded successfully!");
+
+    } catch (error) {
+      console.error("Upload error:", error);
+
+      setMessage(
+        "File upload failed. Please try again."
+      );
+
+    } finally {
+      // Stop loading
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,6 +223,7 @@ function App() {
       ========================= */}
 
       <header className="header">
+
         <div className="header-container">
 
           <div className="brand">
@@ -78,11 +233,13 @@ function App() {
             </div>
 
             <div>
+
               <h1>CivicLens</h1>
 
               <p>
                 Citizen Feedback & Policy Intelligence
               </p>
+
             </div>
 
           </div>
@@ -92,6 +249,7 @@ function App() {
           </div>
 
         </div>
+
       </header>
 
 
@@ -101,7 +259,10 @@ function App() {
 
       <main className="main-content">
 
-        {/* Hero Section */}
+
+        {/* =========================
+            HERO SECTION
+        ========================= */}
 
         <section className="hero-section">
 
@@ -114,8 +275,10 @@ function App() {
           </h2>
 
           <p className="hero-text">
-            Help improve policies and public services by providing
-            valuable citizen feedback.
+
+            Help improve policies and public services by
+            providing valuable citizen feedback.
+
           </p>
 
         </section>
@@ -136,12 +299,16 @@ function App() {
           </h3>
 
           <p className="upload-description">
-            Upload a CSV or Excel file containing citizen feedback
-            to begin the analysis process.
+
+            Upload a CSV or Excel file containing citizen
+            feedback to begin the analysis process.
+
           </p>
 
 
-          {/* File Selection */}
+          {/* =========================
+              FILE SELECTION
+          ========================= */}
 
           <label className="file-label">
 
@@ -158,9 +325,12 @@ function App() {
           </label>
 
 
-          {/* Selected File */}
+          {/* =========================
+              SELECTED FILE
+          ========================= */}
 
           {file && (
+
             <div className="selected-file">
 
               <span className="file-check">
@@ -180,26 +350,332 @@ function App() {
               </div>
 
             </div>
+
           )}
 
 
-          {/* Upload Button */}
+          {/* =========================
+              UPLOAD BUTTON
+          ========================= */}
 
           <button
             className="upload-button"
             onClick={handleUpload}
+            disabled={loading}
           >
-            Upload Feedback
+
+            {loading
+              ? "Uploading..."
+              : "Upload Feedback"
+            }
+
           </button>
 
 
-          {/* Supported Formats */}
+          {/* =========================
+              STATUS MESSAGE
+          ========================= */}
+
+          {message && (
+
+            <p className="upload-message">
+              {message}
+            </p>
+
+          )}
+
+
+          {/* =========================
+              SUPPORTED FORMATS
+          ========================= */}
 
           <p className="file-info">
+
             Supported formats: CSV, XLS, XLSX
+
           </p>
 
         </section>
+          
+         {/* =========================
+                LANGUAGE DASHBOARD
+             ========================= */}
+
+{results.length > 0 && (
+  <section className="language-dashboard">
+
+    <h2>Language Analysis</h2>
+
+    {/* SUMMARY CARDS */}
+
+    <div className="summary-cards">
+
+      <div className="summary-card">
+
+        <h3>Total Feedback</h3>
+
+        <p>{results.length}</p>
+
+      </div>
+
+      <div className="summary-card">
+
+        <h3>Languages Found</h3>
+
+        <p>{totalLanguages}</p>
+
+      </div>
+
+    </div>
+
+
+    {/* LANGUAGE DISTRIBUTION */}
+
+    <div className="language-distribution">
+
+      <h3>Language Distribution</h3>
+
+      {Object.entries(languageCounts).map(
+        ([language, count]) => (
+
+          <div
+            className="language-row"
+            key={language}
+          >
+
+            <span className="language-name">
+              {language}
+            </span>
+
+            <div className="language-bar-background">
+
+              <div
+                className="language-bar"
+                style={{
+                  width: `${(count / results.length) * 100}%`
+                }}
+              ></div>
+
+            </div>
+
+            <span className="language-count">
+              {count}
+            </span>
+
+          </div>
+
+        )
+      )}
+
+    </div>
+
+  </section>
+)} 
+          {/* =========================
+    LOCATION DASHBOARD
+========================= */}
+
+{results.length > 0 && (
+  <section className="location-dashboard">
+
+    <h2>Location Analysis</h2>
+
+    <div className="location-cards">
+
+      {Object.entries(locationCounts).map(
+        ([location, count]) => (
+
+          <div
+            className="location-card"
+            key={location}
+          >
+
+            <h3>{location}</h3>
+
+            <p>{count}</p>
+
+            <span>
+              Feedback Records
+            </span>
+
+          </div>
+
+        )
+      )}
+
+    </div>
+
+  </section>
+)}           
+            {/* =========================
+    SENTIMENT DASHBOARD
+========================= */}
+
+{results.length > 0 && (
+  <section className="sentiment-dashboard">
+
+    <h2>Sentiment Analysis</h2>
+
+    {!hasSentimentData ? (
+
+      <p>
+        Sentiment analysis results are not available yet.
+      </p>
+
+    ) : (
+
+      <div className="sentiment-cards">
+
+        {Object.entries(sentimentCounts).map(
+          ([sentiment, count]) => (
+
+            <div
+              className="sentiment-card"
+              key={sentiment}
+            >
+
+              <h3>{sentiment}</h3>
+
+              <p>{count}</p>
+
+              <span>
+                Feedback Records
+              </span>
+
+            </div>
+
+          )
+        )}
+
+      </div>
+
+    )}
+
+  </section>
+)}
+
+
+        {/* =========================
+            RESULTS SECTION
+        ========================= */}
+
+        {results.length > 0 && (
+
+          <section className="results-section">
+
+            {/* =========================
+    FILTER CONTROLS
+========================= */}
+
+<div className="filter-controls">
+
+  {/* SEARCH */}
+
+  <input
+    type="text"
+    placeholder="Search feedback..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="search-input"
+  />
+
+  {/* LANGUAGE FILTER */}
+
+  <select
+    value={selectedLanguage}
+    onChange={(e) => setSelectedLanguage(e.target.value)}
+    className="filter-select"
+  >
+
+    {languages.map((language) => (
+      <option key={language} value={language}>
+        {language}
+      </option>
+    ))}
+
+  </select>
+
+  {/* LOCATION FILTER */}
+
+  <select
+    value={selectedLocation}
+    onChange={(e) => setSelectedLocation(e.target.value)}
+    className="filter-select"
+  >
+
+    {locations.map((location) => (
+      <option key={location} value={location}>
+        {location}
+      </option>
+    ))}
+
+  </select>
+
+  <button
+    className="clear-filters-button"
+    onClick={clearFilters}
+  >
+    Clear Filters
+  </button>
+
+</div>
+
+            <h2>
+              Processed Feedback
+            </h2>
+
+            <p>
+  Showing {filteredResults.length} of {results.length} feedback records
+</p>
+
+
+            <div className="results-table-container">
+
+  <table className="results-table">
+
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Comment</th>
+        <th>Language</th>
+        <th>Date</th>
+        <th>Location</th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      {filteredResults.length > 0 ? (
+        filteredResults.map((item, index) => (
+          <tr key={item.comment_id || index}>
+            <td>{item.comment_id}</td>
+            <td>{item.comment}</td>
+            <td>
+              <span className="language-badge">
+                {item.language}
+              </span>
+            </td>
+            <td>{item.date}</td>
+            <td>{item.location}</td>
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td colSpan="5" className="no-results">
+            No feedback found matching your search or filters.
+          </td>
+        </tr>
+      )}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+          </section>
+
+        )}
 
 
         {/* =========================
@@ -208,7 +684,8 @@ function App() {
 
         <section className="features">
 
-          {/* Secure Processing */}
+
+          {/* SECURE PROCESSING */}
 
           <div className="feature">
 
@@ -223,8 +700,10 @@ function App() {
               </h4>
 
               <p>
+
                 Feedback is processed through the
                 CivicLens backend.
+
               </p>
 
             </div>
@@ -232,7 +711,7 @@ function App() {
           </div>
 
 
-          {/* Data Driven */}
+          {/* DATA-DRIVEN INSIGHTS */}
 
           <div className="feature">
 
@@ -247,8 +726,10 @@ function App() {
               </h4>
 
               <p>
+
                 Transform citizen feedback into
                 useful policy insights.
+
               </p>
 
             </div>
@@ -256,7 +737,7 @@ function App() {
           </div>
 
 
-          {/* Human Oversight */}
+          {/* HUMAN OVERSIGHT */}
 
           <div className="feature">
 
@@ -271,8 +752,10 @@ function App() {
               </h4>
 
               <p>
+
                 Keep people involved in final
                 policy decisions.
+
               </p>
 
             </div>
@@ -293,11 +776,15 @@ function App() {
         <div className="footer-line"></div>
 
         <p>
+
           CivicLens • Citizen Feedback Intelligence Platform
+
         </p>
 
         <span>
+
           Built for better public policy decisions
+
         </span>
 
       </footer>
