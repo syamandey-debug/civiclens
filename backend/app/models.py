@@ -11,6 +11,7 @@ class Feedback(Base):
 
     comment_id = Column(Integer, unique=True, nullable=False)
     comment = Column(String, nullable=False)
+    translated_comment = Column(String, nullable=True)
     language = Column(String, nullable=True)
     date = Column(Date, nullable=True)
     location = Column(String, nullable=True)

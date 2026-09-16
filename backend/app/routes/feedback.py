@@ -6,7 +6,7 @@ from datetime import datetime
 from app.database import SessionLocal
 from app.models import Feedback
 from app.services.data_cleaning import clean_feedback_data
-
+from app.services.language_detection import detect_language
 router = APIRouter()
 
 
@@ -31,6 +31,7 @@ def get_feedback(db: Session = Depends(get_db)):
             "comment_id": item.comment_id,
             "comment": item.comment,
             "language": item.language,
+            "translated_comment": item.translated_comment,
             "date": item.date,
             "location": item.location,
             "created_at": item.created_at
@@ -45,11 +46,20 @@ def add_feedback(
     feedback: dict,
     db: Session = Depends(get_db)
 ):
+    existing_feedback = db.query(Feedback).filter(
+        Feedback.comment_id == feedback["comment_id"]
+    ).first()
+
+    if existing_feedback:
+        return {
+            "error": "Feedback with this comment_id already exists"
+        }
 
     new_feedback = Feedback(
         comment_id=feedback["comment_id"],
         comment=feedback["comment"],
         language=feedback.get("language"),
+        translated_comment=feedback.get("translated_comment"),
         date=datetime.strptime(
             feedback["date"], "%d-%m-%Y"
         ).date() if feedback.get("date") else None,
@@ -67,6 +77,7 @@ def add_feedback(
             "comment_id": new_feedback.comment_id,
             "comment": new_feedback.comment,
             "language": new_feedback.language,
+            "translated_comment": new_feedback.translated_comment,
             "date": new_feedback.date,
             "location": new_feedback.location
         }
@@ -80,6 +91,10 @@ async def upload_feedback(
     db: Session = Depends(get_db)
 ):
 
+    # -----------------------------
+    # 1. Read the uploaded file
+    # -----------------------------
+
     if file.filename.endswith(".csv"):
         df = pd.read_csv(file.file)
 
@@ -90,14 +105,21 @@ async def upload_feedback(
         return {
             "error": "Only CSV and Excel files are supported"
         }
+
+
+    # -----------------------------
+    # 2. Clean the data
+    # -----------------------------
+
     df = clean_feedback_data(df)
-    # Check required columns
+
+
+    # -----------------------------
+    # 3. Only comment is required
+    # -----------------------------
+
     required_columns = {
-        "comment_id",
-        "comment",
-        "language",
-        "date",
-        "location"
+        "comment"
     }
 
     missing_columns = required_columns - set(df.columns)
@@ -108,33 +130,106 @@ async def upload_feedback(
             "missing_columns": list(missing_columns)
         }
 
+
+    # -----------------------------
+    # 4. Find next comment_id
+    # -----------------------------
+
+    last_feedback = (
+        db.query(Feedback)
+        .order_by(Feedback.comment_id.desc())
+        .first()
+    )
+
+    if last_feedback:
+        next_comment_id = last_feedback.comment_id + 1
+    else:
+        next_comment_id = 1
+
+
     saved_count = 0
+
+
+    # -----------------------------
+    # 5. Process every row
+    # -----------------------------
 
     for _, row in df.iterrows():
 
         comment = str(row["comment"]).strip()
 
+        # Skip empty comments
         if not comment:
             continue
 
-        feedback_date = None
 
-        if pd.notna(row["date"]):
-            feedback_date = datetime.strptime(
-                str(row["date"]),
-                "%d-%m-%Y"
-            ).date()
-        comment_id = int(row["comment_id"])
+        # -----------------------------
+        # comment_id
+        # -----------------------------
+
+        if "comment_id" in df.columns and pd.notna(row["comment_id"]):
+
+            comment_id = int(row["comment_id"])
+
+        else:
+
+            comment_id = next_comment_id
+            next_comment_id += 1
+
+
+        # -----------------------------
+        # Check duplicate comment_id
+        # -----------------------------
 
         existing_feedback = db.query(Feedback).filter(
-        Feedback.comment_id == comment_id
+            Feedback.comment_id == comment_id
         ).first()
 
         if existing_feedback:
             continue
-        existing_feedback = db.query(Feedback).filter(
-           Feedback.comment_id == feedback["comment_id"]
-        ).first()
+
+
+        # -----------------------------
+        # Language
+        # -----------------------------
+
+       # -----------------------------
+# Language
+# -----------------------------
+
+        language = detect_language(comment)
+
+
+        # -----------------------------
+        # Date
+        # -----------------------------
+
+        feedback_date = None
+
+        if "date" in df.columns and pd.notna(row["date"]):
+
+            feedback_date = datetime.strptime(
+                str(row["date"]),
+                "%d-%m-%Y"
+            ).date()
+
+
+        # -----------------------------
+        # Location
+        # -----------------------------
+
+        if "location" in df.columns and pd.notna(row["location"]):
+
+            location = str(row["location"]).strip()
+
+        else:
+
+            location = None
+
+
+        # -----------------------------
+        # Create database record
+        # -----------------------------
 
         if existing_feedback:
             return {
@@ -144,23 +239,26 @@ async def upload_feedback(
         new_feedback = Feedback(
             comment_id=comment_id,
             comment=comment,
-            language=(
-                str(row["language"]).strip()
-                if pd.notna(row["language"])
-                else None
-            ),
+            language=language,
             date=feedback_date,
-            location=(
-                str(row["location"]).strip()
-                if pd.notna(row["location"])
-                else None
-            )
+            location=location
         )
 
         db.add(new_feedback)
+
         saved_count += 1
 
+
+    # -----------------------------
+    # 6. Save to database
+    # -----------------------------
+
     db.commit()
+
+
+    # -----------------------------
+    # 7. Return response
+    # -----------------------------
 
     return {
         "filename": file.filename,

@@ -15,10 +15,12 @@ def clean_feedback_data(df):
     # Remove rows where comment is empty after cleaning
     df = df[df["comment"] != ""]
 
-    # Clean language
-    df["language"] = df["language"].fillna("").str.strip()
+    # Clean language if the column exists
+    if "language" in df.columns:
+        df["language"] = df["language"].fillna("").str.strip()
 
     # Clean location
-    df["location"] = df["location"].fillna("").str.strip()
+    if "location" in df.columns:
+        df["location"] = df["location"].fillna("").str.strip()
 
     return df
