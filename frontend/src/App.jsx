@@ -1,5 +1,7 @@
 import { useState } from "react";
+import StatCard from "./components/StatCard";
 import "./index.css";
+
 
 function App() {
   const [file, setFile] = useState(null);
@@ -105,7 +107,7 @@ const clearFilters = () => {
   setSelectedLanguage("All");
   setSelectedLocation("All");
 };
-
+    
 // =========================
   // HANDLE FILE SELECTION
   // =========================
@@ -214,6 +216,53 @@ const clearFilters = () => {
       setLoading(false);
     }
   };
+
+  // =========================
+// DOWNLOAD FILTERED RESULTS
+// =========================
+
+const downloadFilteredResults = () => {
+  if (filteredResults.length === 0) {
+    alert("No feedback available to download.");
+    return;
+  }
+
+  const headers = [
+    "ID",
+    "Comment",
+    "Language",
+    "Date",
+    "Location",
+  ];
+
+  const csvRows = [
+    headers.join(","),
+    ...filteredResults.map((item) =>
+      [
+        item.comment_id,
+        `"${(item.comment || "").replace(/"/g, '""')}"`,
+        item.language,
+        item.date,
+        item.location,
+      ].join(",")
+    ),
+  ];
+
+  const csvContent = csvRows.join("\n");
+
+  const blob = new Blob([csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "filtered_feedback.csv";
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
 
   return (
     <div className="app">
@@ -617,6 +666,12 @@ const clearFilters = () => {
   >
     Clear Filters
   </button>
+   <button
+  className="download-button"
+  onClick={downloadFilteredResults}
+>
+  Download CSV
+</button>
 
 </div>
 
