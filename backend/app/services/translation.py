@@ -1,31 +1,59 @@
-from deep_translator import GoogleTranslator
+import os
+
+from dotenv import load_dotenv
+import argostranslate.translate
+from sarvamai import SarvamAI
+
+load_dotenv()
 
 
 def translate_to_english(text, language):
     if not text or not text.strip():
         return None
 
+    # English does not need translation
     if language == "English":
         return text
 
-    language_codes = {
-        "Telugu": "te",
-        "Hindi": "hi"
-    }
+    # Hindi → English using Argos Translate
+    if language == "Hindi":
+        try:
+            translated = argostranslate.translate.translate(
+                text,
+                "hi",
+                "en"
+            )
+            return translated
 
-    source_language = language_codes.get(language)
+        except Exception as e:
+            print(f"Hindi translation failed: {e}")
+            return None
 
-    if not source_language:
-        return None
+    # Telugu → English using Sarvam AI
+    if language == "Telugu":
+        try:
+            api_key = os.getenv("SARVAM_API_KEY")
 
-    try:
-        translated = GoogleTranslator(
-            source=source_language,
-            target="en"
-        ).translate(text)
+            if not api_key:
+                print("SARVAM_API_KEY not found")
+                return None
 
-        return translated
+            client = SarvamAI(
+                api_subscription_key=api_key
+            )
 
-    except Exception as e:
-        print(f"Translation failed: {e}")
-        return None
+            response = client.text.translate(
+                input=text,
+                source_language_code="te-IN",
+                target_language_code="en-IN"
+            )
+
+            return response.translated_text
+
+        except Exception as e:
+            print(f"Telugu translation failed: {e}")
+            return None
+
+    # Unsupported language
+    return None
+    

@@ -7,6 +7,7 @@ from app.database import SessionLocal
 from app.models import Feedback
 from app.services.data_cleaning import clean_feedback_data
 from app.services.language_detection import detect_language
+from app.services.translation import translate_to_english
 router = APIRouter()
 
 
@@ -198,7 +199,7 @@ async def upload_feedback(
 # -----------------------------
 
         language = detect_language(comment)
-
+        translated_comment = translate_to_english(comment, language)
 
         # -----------------------------
         # Date
@@ -240,6 +241,7 @@ async def upload_feedback(
             comment_id=comment_id,
             comment=comment,
             language=language,
+            translated_comment=translated_comment,
             date=feedback_date,
             location=location
         )
