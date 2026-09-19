@@ -1,5 +1,9 @@
 import { useState } from "react";
 import StatCard from "./components/StatCard";
+import Navbar from "./components/Navbar";
+import UploadBox from "./components/UploadBox";
+import FeedbackTable from "./components/FeedbackTable";
+import Sidebar from "./components/Sidebar";
 import "./index.css";
 
 
@@ -266,6 +270,16 @@ const downloadFilteredResults = () => {
 
   return (
     <div className="app">
+      <Sidebar />
+
+    <div className="main-content">
+
+      {/* Your existing CivicLens content */}
+
+    </div>
+       <Navbar />
+
+    {/* Your existing CivicLens content */}
 
       {/* =========================
           HEADER
@@ -337,7 +351,7 @@ const downloadFilteredResults = () => {
             UPLOAD CARD
         ========================= */}
 
-        <section className="upload-card">
+        <section className="upload-card" id="upload">
 
           <div className="upload-icon">
             📄
@@ -407,10 +421,10 @@ const downloadFilteredResults = () => {
               UPLOAD BUTTON
           ========================= */}
 
-          <button
+         <button
             className="upload-button"
             onClick={handleUpload}
-            disabled={loading}
+           disabled={!file || loading}
           >
 
             {loading
@@ -447,11 +461,11 @@ const downloadFilteredResults = () => {
         </section>
           
          {/* =========================
-                LANGUAGE DASHBOARD
-             ========================= */}
+    LANGUAGE DASHBOARD
+========================= */}
 
 {results.length > 0 && (
-  <section className="language-dashboard">
+      <section className="language-dashboard" id="dashboard">
 
     <h2>Language Analysis</h2>
 
@@ -459,24 +473,19 @@ const downloadFilteredResults = () => {
 
     <div className="summary-cards">
 
-      <div className="summary-card">
+      <StatCard
+        title="Total Feedback"
+        value={results.length}
+        description="Uploaded feedback records"
+      />
 
-        <h3>Total Feedback</h3>
-
-        <p>{results.length}</p>
-
-      </div>
-
-      <div className="summary-card">
-
-        <h3>Languages Found</h3>
-
-        <p>{totalLanguages}</p>
-
-      </div>
+      <StatCard
+        title="Languages Found"
+        value={totalLanguages}
+        description="Detected languages"
+      />
 
     </div>
-
 
     {/* LANGUAGE DISTRIBUTION */}
 
@@ -519,7 +528,15 @@ const downloadFilteredResults = () => {
     </div>
 
   </section>
-)} 
+)}
+{/* FEEDBACK TABLE */}
+
+{results.length > 0 && (
+  <FeedbackTable results={results} />
+)}
+
+
+
           {/* =========================
     LOCATION DASHBOARD
 ========================= */}
@@ -561,7 +578,7 @@ const downloadFilteredResults = () => {
 ========================= */}
 
 {results.length > 0 && (
-  <section className="sentiment-dashboard">
+  <section className="sentiment-dashboard" id="insights">
 
     <h2>Sentiment Analysis</h2>
 
