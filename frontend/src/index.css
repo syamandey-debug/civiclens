@@ -1214,13 +1214,3 @@ body {
   width: auto;
 }
 
-.main-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.page-content {
-  padding: 25px;
-  width: 100%;
-  box-sizing: border-box;
-}

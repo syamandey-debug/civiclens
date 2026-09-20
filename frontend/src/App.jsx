@@ -276,7 +276,7 @@ const downloadFilteredResults = () => {
 
       {/* Your existing CivicLens content */}
 
-    </div>
+  
        <Navbar />
 
     {/* Your existing CivicLens content */}
@@ -320,7 +320,7 @@ const downloadFilteredResults = () => {
           MAIN CONTENT
       ========================= */}
 
-      <main className="main-content">
+      <main className="page-content">
 
 
         {/* =========================
@@ -860,6 +860,7 @@ const downloadFilteredResults = () => {
         </span>
 
       </footer>
+      </div>
 
     </div>
   );
