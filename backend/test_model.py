@@ -81,6 +81,11 @@ def load_model_files():
 
     print("English model files loaded successfully!")
 
+    print(
+        "Model classes:",
+        list(model.classes_)
+    )
+
     return (
         model,
         word_vectorizer,
@@ -99,11 +104,11 @@ def predict_sentiment(
     char_vectorizer
 ):
 
-    if not comment or not comment.strip():
+    if not isinstance(comment, str) or not comment.strip():
 
         return {
             "sentiment": "Invalid input",
-            "confidence": 0.0,
+            "probability": 0.0,
             "probabilities": {}
         }
 
@@ -137,8 +142,7 @@ def predict_sentiment(
         combined_features
     )[0]
 
-    confidence = max(probabilities)
-
+    # Find probability of predicted class
     class_probabilities = dict(
         zip(
             model.classes_,
@@ -146,9 +150,13 @@ def predict_sentiment(
         )
     )
 
+    prediction_probability = class_probabilities[
+        prediction
+    ]
+
     return {
         "sentiment": prediction,
-        "confidence": confidence,
+        "probability": prediction_probability,
         "probabilities": class_probabilities
     }
 
@@ -176,8 +184,8 @@ def display_prediction(
     if result["sentiment"] != "Invalid input":
 
         print(
-            f"Probability Estimate: "
-            f"{result['confidence'] * 100:.2f}%"
+            f"Prediction Probability: "
+            f"{result['probability'] * 100:.2f}%"
         )
 
         print("\nClass probabilities:")
@@ -224,26 +232,40 @@ def run_sample_tests(
 
         "The water supply is irregular and unreliable.",
 
-        "The new public park is clean and well maintained."
+        "The new public park is clean and well maintained.",
+
+        "The drainage system is completely blocked.",
+
+        "The city has introduced a new bus service."
 
     ]
 
     print("\n========================================")
+
     print("ENGLISH SENTIMENT PREDICTIONS")
+
     print("========================================")
 
     for comment in test_comments:
 
         result = predict_sentiment(
+
             comment,
+
             model,
+
             word_vectorizer,
+
             char_vectorizer
+
         )
 
         display_prediction(
+
             comment,
+
             result
+
         )
 
 
@@ -252,33 +274,47 @@ def run_sample_tests(
 # ============================================================
 
 def interactive_testing(
+
     model,
+
     word_vectorizer,
+
     char_vectorizer
+
 ):
 
     print("\n========================================")
+
     print("INTERACTIVE ENGLISH TESTING")
+
     print("========================================")
 
     print(
+
         "Enter an English comment."
+
     )
 
     print(
+
         "Type 'exit' to stop."
+
     )
 
     while True:
 
         comment = input(
+
             "\nEnter your comment: "
+
         ).strip()
 
         if comment.lower() == "exit":
 
             print(
+
                 "\nExiting interactive testing."
+
             )
 
             break
@@ -286,21 +322,31 @@ def interactive_testing(
         if not comment:
 
             print(
+
                 "Please enter a valid comment."
+
             )
 
             continue
 
         result = predict_sentiment(
+
             comment,
+
             model,
+
             word_vectorizer,
+
             char_vectorizer
+
         )
 
         display_prediction(
+
             comment,
+
             result
+
         )
 
 
@@ -313,44 +359,67 @@ def main():
     try:
 
         (
+
             model,
+
             word_vectorizer,
+
             char_vectorizer
+
         ) = load_model_files()
 
         run_sample_tests(
+
             model,
+
             word_vectorizer,
+
             char_vectorizer
+
         )
 
         while True:
 
             choice = input(
+
                 "\nDo you want to test your own English comment? "
+
                 "(yes/no): "
+
             ).strip().lower()
 
             if choice in [
+
                 "yes",
+
                 "y"
+
             ]:
 
                 interactive_testing(
+
                     model,
+
                     word_vectorizer,
+
                     char_vectorizer
+
                 )
 
                 break
 
             elif choice in [
+
                 "no",
+
                 "n"
+
             ]:
 
                 print(
+
                     "\nTesting completed."
+
                 )
 
                 break
@@ -358,19 +427,25 @@ def main():
             else:
 
                 print(
+
                     "Please enter yes or no."
+
                 )
 
     except FileNotFoundError as error:
 
         print(
+
             f"\nERROR: {error}"
+
         )
 
     except Exception as error:
 
         print(
+
             "\nAn unexpected error occurred:"
+
         )
 
         print(error)
