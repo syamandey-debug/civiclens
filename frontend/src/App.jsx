@@ -15,6 +15,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
 const [selectedLanguage, setSelectedLanguage] = useState("All");
 const [selectedLocation, setSelectedLocation] = useState("All");
+const [activePage, setActivePage] = useState("dashboard");
 
   
   
