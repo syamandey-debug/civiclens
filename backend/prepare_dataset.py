@@ -20,32 +20,8 @@ print("Original dataset size:", len(df))
 
 
 # -----------------------------------
-# 2. Language detection functions
+# 2. English language detection
 # -----------------------------------
-
-def contains_devanagari(text):
-    """
-    Detect Hindi-style Devanagari characters.
-    Unicode range: U+0900 to U+097F
-    """
-
-    return any(
-        "\u0900" <= char <= "\u097F"
-        for char in text
-    )
-
-
-def contains_telugu(text):
-    """
-    Detect Telugu characters.
-    Unicode range: U+0C00 to U+0C7F
-    """
-
-    return any(
-        "\u0C00" <= char <= "\u0C7F"
-        for char in text
-    )
-
 
 def contains_latin(text):
     """
@@ -61,21 +37,15 @@ def contains_latin(text):
 
 def detect_language(text):
     """
-    Identify English, Hindi, or Telugu.
+    Detect English text only.
 
-    Returns None for unsupported or
-    ambiguous scripts.
+    Returns None for non-English text.
     """
 
     if not isinstance(text, str):
         return None
 
-    if contains_devanagari(text):
-        return "Hindi"
-
-    if contains_telugu(text):
-        return "Telugu"
-
+    # English text must contain Latin characters
     if contains_latin(text):
         return "English"
 
@@ -86,7 +56,7 @@ def detect_language(text):
 # 3. Detect language
 # -----------------------------------
 
-print("Detecting languages...")
+print("Detecting English language...")
 
 df["language"] = df["Sentence"].apply(
     detect_language
@@ -94,17 +64,11 @@ df["language"] = df["Sentence"].apply(
 
 
 # -----------------------------------
-# 4. Keep only required languages
+# 4. Keep only English
 # -----------------------------------
 
-selected_languages = [
-    "English",
-    "Hindi",
-    "Telugu"
-]
-
 df = df[
-    df["language"].isin(selected_languages)
+    df["language"] == "English"
 ].copy()
 
 
@@ -168,7 +132,7 @@ df = df.drop_duplicates(
 # 8. Display statistics
 # -----------------------------------
 
-print("\nSelected dataset size:", len(df))
+print("\nSelected English dataset size:", len(df))
 
 print("\nLanguage distribution:")
 print(df["language"].value_counts())
@@ -176,13 +140,8 @@ print(df["language"].value_counts())
 print("\nSentiment distribution:")
 print(df["sentiment"].value_counts())
 
-print("\nLanguage and sentiment distribution:")
-print(
-    pd.crosstab(
-        df["language"],
-        df["sentiment"]
-    )
-)
+print("\nSentiment distribution:")
+print(df["sentiment"].value_counts())
 
 
 # -----------------------------------
@@ -206,5 +165,5 @@ df.to_csv(
     encoding="utf-8-sig"
 )
 
-print("\nDataset saved successfully!")
+print("\nEnglish dataset saved successfully!")
 print("Saved location:", OUTPUT_PATH)

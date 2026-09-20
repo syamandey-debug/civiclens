@@ -1,7 +1,6 @@
 import os
 import pickle
 
-import pandas as pd
 from scipy.sparse import hstack
 
 
@@ -37,12 +36,12 @@ CHAR_VECTORIZER_PATH = os.path.join(
 
 
 # ============================================================
-# 2. LOAD MODEL AND VECTORIZERS
+# 2. LOAD MODEL FILES
 # ============================================================
 
 def load_model_files():
 
-    print("\nLoading model files...")
+    print("\nLoading English model files...")
 
     required_files = [
         MODEL_PATH,
@@ -56,7 +55,7 @@ def load_model_files():
 
             raise FileNotFoundError(
                 f"File not found: {file_path}\n"
-                "Please train the model first."
+                "Please run train_model.py first."
             )
 
     with open(
@@ -80,7 +79,7 @@ def load_model_files():
 
         char_vectorizer = pickle.load(file)
 
-    print("Model files loaded successfully!")
+    print("English model files loaded successfully!")
 
     return (
         model,
@@ -90,7 +89,7 @@ def load_model_files():
 
 
 # ============================================================
-# 3. PREDICTION FUNCTION
+# 3. PREDICT SENTIMENT
 # ============================================================
 
 def predict_sentiment(
@@ -104,22 +103,23 @@ def predict_sentiment(
 
         return {
             "sentiment": "Invalid input",
-            "confidence": 0.0
+            "confidence": 0.0,
+            "probabilities": {}
         }
 
     comment = comment.strip()
 
-    # Convert comment into word features
+    # Word-level features
     word_features = word_vectorizer.transform(
         [comment]
     )
 
-    # Convert comment into character features
+    # Character-level features
     char_features = char_vectorizer.transform(
         [comment]
     )
 
-    # Combine both feature types
+    # Combine features
     combined_features = hstack(
         [
             word_features,
@@ -132,15 +132,13 @@ def predict_sentiment(
         combined_features
     )[0]
 
-    # Calculate probability estimate
+    # Calculate probability estimates
     probabilities = model.predict_proba(
         combined_features
     )[0]
 
-    # Get the highest probability
     confidence = max(probabilities)
 
-    # Get all class probabilities
     class_probabilities = dict(
         zip(
             model.classes_,
@@ -171,7 +169,8 @@ def display_prediction(
     )
 
     print(
-        f"Predicted Sentiment: {result['sentiment']}"
+        f"Predicted Sentiment: "
+        f"{result['sentiment']}"
     )
 
     if result["sentiment"] != "Invalid input":
@@ -196,7 +195,7 @@ def display_prediction(
 
 
 # ============================================================
-# 5. PREDEFINED TEST COMMENTS
+# 5. SAMPLE ENGLISH COMMENTS
 # ============================================================
 
 def run_sample_tests(
@@ -207,116 +206,43 @@ def run_sample_tests(
 
     test_comments = [
 
-        {
-            "language": "English",
-            "comment": (
-                "The road repair work was "
-                "successfully completed."
-            )
-        },
+        "The road repair work was successfully completed.",
 
-        {
-            "language": "English",
-            "comment": (
-                "The garbage collection service "
-                "is very poor."
-            )
-        },
+        "The garbage collection service is very poor.",
 
-        {
-            "language": "English",
-            "comment": (
-                "The government announced "
-                "a new transport project."
-            )
-        },
+        "The government announced a new transport project.",
 
-        {
-            "language": "English",
-            "comment": (
-                "The streetlights are not working."
-            )
-        },
+        "The streetlights are not working.",
 
-        {
-            "language": "English",
-            "comment": (
-                "The water supply has improved."
-            )
-        },
+        "The water supply has improved.",
 
-        {
-            "language": "Hindi",
-            "comment": (
-                "सड़क की मरम्मत का काम "
-                "सफलतापूर्वक पूरा हो गया है।"
-            )
-        },
+        "The public hospital provides excellent service.",
 
-        {
-            "language": "Hindi",
-            "comment": (
-                "कचरा संग्रहण सेवा बहुत खराब है।"
-            )
-        },
+        "The roads are full of potholes.",
 
-        {
-            "language": "Hindi",
-            "comment": (
-                "सड़क की लाइटें काम नहीं कर रही हैं।"
-            )
-        },
+        "The municipality has improved waste management.",
 
-        {
-            "language": "Telugu",
-            "comment": (
-                "రోడ్డు మరమ్మతు పనులు "
-                "విజయవంతంగా పూర్తయ్యాయి."
-            )
-        },
+        "The water supply is irregular and unreliable.",
 
-        {
-            "language": "Telugu",
-            "comment": (
-                "చెత్త సేకరణ సేవ చాలా అధ్వాన్నంగా ఉంది."
-            )
-        },
-
-        {
-            "language": "Telugu",
-            "comment": (
-                "వీధి దీపాలు పనిచేయడం లేదు."
-            )
-        },
-
-        {
-            "language": "Telugu",
-            "comment": (
-                "నీటి సరఫరా మెరుగుపడింది."
-            )
-        }
+        "The new public park is clean and well maintained."
 
     ]
 
     print("\n========================================")
-    print("SAMPLE SENTIMENT PREDICTIONS")
+    print("ENGLISH SENTIMENT PREDICTIONS")
     print("========================================")
 
-    for item in test_comments:
-
-        print(
-            f"\nLanguage: {item['language']}"
-        )
+    for comment in test_comments:
 
         result = predict_sentiment(
-            item["comment"],
+            comment,
             model,
             word_vectorizer,
             char_vectorizer
         )
 
         display_prediction(
-            item["comment"],
+            comment,
             result
         )
 
@@ -332,11 +258,11 @@ def interactive_testing(
 ):
 
     print("\n========================================")
-    print("INTERACTIVE SENTIMENT TESTING")
+    print("INTERACTIVE ENGLISH TESTING")
     print("========================================")
 
     print(
-        "Enter a comment in English, Hindi, or Telugu."
+        "Enter an English comment."
     )
 
     print(
@@ -401,7 +327,7 @@ def main():
         while True:
 
             choice = input(
-                "\nDo you want to test your own comment? "
+                "\nDo you want to test your own English comment? "
                 "(yes/no): "
             ).strip().lower()
 

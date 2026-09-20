@@ -2,7 +2,6 @@ import os
 import pickle
 import warnings
 
-import numpy as np
 import pandas as pd
 
 from scipy.sparse import hstack
@@ -24,7 +23,11 @@ warnings.filterwarnings("ignore")
 # 1. PATH CONFIGURATION
 # ============================================================
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    )
+)
 
 DATA_PATH = os.path.join(
     BASE_DIR,
@@ -37,7 +40,13 @@ MODEL_DIR = os.path.join(
     "models"
 )
 
+REPORT_DIR = os.path.join(
+    BASE_DIR,
+    "reports"
+)
+
 os.makedirs(MODEL_DIR, exist_ok=True)
+os.makedirs(REPORT_DIR, exist_ok=True)
 
 
 MODEL_PATH = os.path.join(
@@ -60,12 +69,19 @@ CHAR_VECTORIZER_PATH = os.path.join(
 # 2. LOAD DATASET
 # ============================================================
 
-print("\nLoading dataset...")
+print("\nLoading English dataset...")
+
+if not os.path.exists(DATA_PATH):
+    raise FileNotFoundError(
+        f"Dataset not found: {DATA_PATH}\n"
+        "Run prepare_dataset.py first."
+    )
 
 df = pd.read_csv(DATA_PATH)
 
-print(f"Original dataset size: {len(df)}")
-print(f"Columns: {list(df.columns)}")
+print(
+    f"Original dataset size: {len(df)}"
+)
 
 
 # ============================================================
@@ -79,14 +95,28 @@ required_columns = [
 ]
 
 for column in required_columns:
+
     if column not in df.columns:
+
         raise ValueError(
             f"Missing required column: {column}"
         )
 
 
 # ============================================================
-# 4. CLEAN DATA
+# 4. KEEP ENGLISH ONLY
+# ============================================================
+
+print("\nKeeping English comments only...")
+
+df = df[
+    df["language"].astype(str).str.strip()
+    == "English"
+].copy()
+
+
+# ============================================================
+# 5. CLEAN DATA
 # ============================================================
 
 print("\nCleaning dataset...")
@@ -118,25 +148,11 @@ df["sentiment"] = (
 )
 
 # Remove empty comments
-df = df[df["comment"] != ""]
-
-# Remove duplicate comments
-df = df.drop_duplicates(
-    subset=["comment", "language", "sentiment"]
-)
-
-# Keep only required languages
-allowed_languages = [
-    "English",
-    "Hindi",
-    "Telugu"
-]
-
 df = df[
-    df["language"].isin(allowed_languages)
+    df["comment"] != ""
 ]
 
-# Keep only required sentiment labels
+# Keep supported sentiment labels
 allowed_sentiments = [
     "Positive",
     "Negative",
@@ -144,74 +160,88 @@ allowed_sentiments = [
 ]
 
 df = df[
-    df["sentiment"].isin(allowed_sentiments)
+    df["sentiment"].isin(
+        allowed_sentiments
+    )
 ]
 
-df = df.reset_index(drop=True)
+# Remove duplicate comments
+df = df.drop_duplicates(
+    subset=[
+        "comment",
+        "sentiment"
+    ]
+)
 
-print(f"Cleaned dataset size: {len(df)}")
+df = df.reset_index(
+    drop=True
+)
 
+if len(df) == 0:
 
-# ============================================================
-# 5. DISPLAY DATA DISTRIBUTION
-# ============================================================
-
-print("\nLanguage distribution:")
-print(df["language"].value_counts())
-
-print("\nSentiment distribution:")
-print(df["sentiment"].value_counts())
-
-print("\nLanguage and sentiment distribution:")
-print(
-    pd.crosstab(
-        df["language"],
-        df["sentiment"]
+    raise ValueError(
+        "No English data available. "
+        "Check training_data.csv."
     )
+
+print(
+    f"English dataset size: {len(df)}"
 )
 
 
 # ============================================================
-# 6. PREPARE FEATURES AND LABELS
+# 6. DISPLAY DATA DISTRIBUTION
+# ============================================================
+
+print("\nLanguage distribution:")
+
+print(
+    df["language"].value_counts()
+)
+
+print("\nSentiment distribution:")
+
+print(
+    df["sentiment"].value_counts()
+)
+
+
+# ============================================================
+# 7. PREPARE FEATURES AND LABELS
 # ============================================================
 
 X = df["comment"]
 
 y = df["sentiment"]
 
-language = df["language"]
-
 
 # ============================================================
-# 7. STRATIFIED TRAIN-TEST SPLIT
+# 8. STRATIFIED TRAIN-TEST SPLIT
 # ============================================================
 
 print("\nSplitting dataset...")
 
-# Preserve both language and sentiment distribution
-stratify_key = (
-    df["language"].astype(str)
-    + "_"
-    + df["sentiment"].astype(str)
-)
-
-X_train, X_test, y_train, y_test, language_train, language_test = (
+X_train, X_test, y_train, y_test = (
     train_test_split(
         X,
         y,
-        language,
         test_size=0.20,
         random_state=42,
-        stratify=stratify_key
+        stratify=y
     )
 )
 
-print(f"Training samples: {len(X_train)}")
-print(f"Testing samples: {len(X_test)}")
+print(
+    f"Training samples: {len(X_train)}"
+)
+
+print(
+    f"Testing samples: {len(X_test)}"
+)
 
 
 # ============================================================
-# 8. WORD-LEVEL TF-IDF
+# 9. WORD-LEVEL TF-IDF
 # ============================================================
 
 print("\nCreating word-level TF-IDF features...")
@@ -225,12 +255,16 @@ word_vectorizer = TfidfVectorizer(
     max_features=200000
 )
 
-X_train_word = word_vectorizer.fit_transform(
-    X_train
+X_train_word = (
+    word_vectorizer.fit_transform(
+        X_train
+    )
 )
 
-X_test_word = word_vectorizer.transform(
-    X_test
+X_test_word = (
+    word_vectorizer.transform(
+        X_test
+    )
 )
 
 print(
@@ -240,7 +274,7 @@ print(
 
 
 # ============================================================
-# 9. CHARACTER-LEVEL TF-IDF
+# 10. CHARACTER-LEVEL TF-IDF
 # ============================================================
 
 print("\nCreating character-level TF-IDF features...")
@@ -253,12 +287,16 @@ char_vectorizer = TfidfVectorizer(
     max_features=200000
 )
 
-X_train_char = char_vectorizer.fit_transform(
-    X_train
+X_train_char = (
+    char_vectorizer.fit_transform(
+        X_train
+    )
 )
 
-X_test_char = char_vectorizer.transform(
-    X_test
+X_test_char = (
+    char_vectorizer.transform(
+        X_test
+    )
 )
 
 print(
@@ -268,7 +306,7 @@ print(
 
 
 # ============================================================
-# 10. COMBINE WORD AND CHARACTER FEATURES
+# 11. COMBINE FEATURES
 # ============================================================
 
 print("\nCombining TF-IDF features...")
@@ -299,7 +337,7 @@ print(
 
 
 # ============================================================
-# 11. TRAIN LOGISTIC REGRESSION WITH GRID SEARCH
+# 12. TRAIN LOGISTIC REGRESSION
 # ============================================================
 
 print("\nTraining model...")
@@ -344,7 +382,7 @@ print(
 )
 
 print(
-    "Best cross-validation accuracy:",
+    "Best CV accuracy:",
     round(
         grid_search.best_score_,
         4
@@ -353,7 +391,7 @@ print(
 
 
 # ============================================================
-# 12. PREDICT TEST DATA
+# 13. PREDICTIONS
 # ============================================================
 
 print("\nEvaluating model...")
@@ -364,7 +402,7 @@ y_pred = model.predict(
 
 
 # ============================================================
-# 13. OVERALL EVALUATION
+# 14. OVERALL EVALUATION
 # ============================================================
 
 accuracy = accuracy_score(
@@ -384,9 +422,9 @@ weighted_f1 = f1_score(
     average="weighted"
 )
 
-print("\n==============================")
-print("OVERALL MODEL PERFORMANCE")
-print("==============================")
+print("\n========================================")
+print("ENGLISH MODEL PERFORMANCE")
+print("========================================")
 
 print(
     f"Accuracy: {accuracy:.4f}"
@@ -413,7 +451,7 @@ print(
 
 
 # ============================================================
-# 14. CONFUSION MATRIX
+# 15. CONFUSION MATRIX
 # ============================================================
 
 print("\nConfusion Matrix:")
@@ -440,64 +478,20 @@ print(confusion_df)
 
 
 # ============================================================
-# 15. LANGUAGE-WISE EVALUATION
+# 16. MISCLASSIFICATION ANALYSIS
 # ============================================================
 
-print("\n==============================")
-print("LANGUAGE-WISE PERFORMANCE")
-print("==============================")
+print("\n========================================")
+print("MISCLASSIFICATION ANALYSIS")
+print("========================================")
 
 evaluation_df = pd.DataFrame(
     {
         "comment": X_test.values,
         "actual": y_test.values,
-        "predicted": y_pred,
-        "language": language_test.values
+        "predicted": y_pred
     }
 )
-
-for lang in allowed_languages:
-
-    language_data = evaluation_df[
-        evaluation_df["language"] == lang
-    ]
-
-    if len(language_data) == 0:
-        continue
-
-    language_accuracy = accuracy_score(
-        language_data["actual"],
-        language_data["predicted"]
-    )
-
-    language_macro_f1 = f1_score(
-        language_data["actual"],
-        language_data["predicted"],
-        average="macro",
-        zero_division=0
-    )
-
-    print(f"\nLanguage: {lang}")
-    print(
-        f"Samples: {len(language_data)}"
-    )
-
-    print(
-        f"Accuracy: {language_accuracy:.4f}"
-    )
-
-    print(
-        f"Macro F1: {language_macro_f1:.4f}"
-    )
-
-
-# ============================================================
-# 16. MISCLASSIFICATION ANALYSIS
-# ============================================================
-
-print("\n==============================")
-print("MISCLASSIFICATION ANALYSIS")
-print("==============================")
 
 misclassified_df = evaluation_df[
     evaluation_df["actual"]
@@ -514,27 +508,14 @@ if len(misclassified_df) > 0:
     print("\nSample misclassified comments:")
 
     print(
-        misclassified_df[
-            [
-                "comment",
-                "language",
-                "actual",
-                "predicted"
-            ]
-        ]
+        misclassified_df
         .head(20)
         .to_string(index=False)
     )
 
     error_path = os.path.join(
-        BASE_DIR,
-        "reports",
+        REPORT_DIR,
         "misclassified_comments.csv"
-    )
-
-    os.makedirs(
-        os.path.dirname(error_path),
-        exist_ok=True
     )
 
     misclassified_df.to_csv(
@@ -544,8 +525,10 @@ if len(misclassified_df) > 0:
     )
 
     print(
-        f"\nMisclassification report saved to: {error_path}"
+        "\nMisclassification report saved:"
     )
+
+    print(error_path)
 
 
 # ============================================================
@@ -564,7 +547,6 @@ with open(
         file
     )
 
-
 with open(
     WORD_VECTORIZER_PATH,
     "wb"
@@ -574,7 +556,6 @@ with open(
         word_vectorizer,
         file
     )
-
 
 with open(
     CHAR_VECTORIZER_PATH,
@@ -591,9 +572,9 @@ with open(
 # 18. FINAL SUMMARY
 # ============================================================
 
-print("\n==============================")
+print("\n========================================")
 print("TRAINING SUMMARY")
-print("==============================")
+print("========================================")
 
 print(
     f"Dataset size: {len(df)}"
@@ -633,4 +614,4 @@ print(
     f"- {CHAR_VECTORIZER_PATH}"
 )
 
-print("\nTraining process completed successfully!")
+print("\nEnglish-only training completed successfully!")
