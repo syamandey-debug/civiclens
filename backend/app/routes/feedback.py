@@ -177,6 +177,7 @@ def get_feedback(
             "comment": item.comment,
             "language": item.language,
             "translated_comment": item.translated_comment,
+            "predicted_sentiment":item.predicted_sentiment,
             "date": item.date,
             "location": item.location,
             "created_at": item.created_at
@@ -234,6 +235,11 @@ def add_feedback(
             comment,
             language
         )
+    prediction_result = predict_sentiment(
+    translated_comment
+    )
+
+    predicted_sentiment = prediction_result["sentiment"]
 
     # Parse date
     feedback_date = None
@@ -261,6 +267,7 @@ def add_feedback(
         comment=comment,
         language=language,
         translated_comment=translated_comment,
+        predicted_sentiment=predicted_sentiment,
         date=feedback_date,
         location=feedback.get("location")
     )
@@ -280,6 +287,7 @@ def add_feedback(
             "translated_comment": (
                 new_feedback.translated_comment
             ),
+            "predicted_sentiment": new_feedback.predicted_sentiment,
             "date": new_feedback.date,
             "location": new_feedback.location
         }
@@ -471,6 +479,11 @@ async def upload_feedback(
             comment,
             language
         )
+        prediction_result = predict_sentiment(
+        translated_comment
+        )
+
+        predicted_sentiment = prediction_result["sentiment"]
 
         # ----------------------------------------------------
         # Process date
@@ -529,6 +542,7 @@ async def upload_feedback(
             comment=comment,
             language=language,
             translated_comment=translated_comment,
+            predicted_sentiment=predicted_sentiment,
             date=feedback_date,
             location=location
         )
