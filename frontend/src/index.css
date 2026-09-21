@@ -1464,3 +1464,18 @@ body {
   color: #1e293b;
   background: #f1f5f9;
 }
+
+/* NAVBAR BUTTONS */
+.navbar-links button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.navbar-links button:hover {
+  color: #fbbf24;
+}

@@ -278,17 +278,10 @@ const downloadFilteredResults = () => {
       {/* Your existing CivicLens content */}
 
   
-       <Navbar />
+      <Navbar setActivePage={setActivePage} />
 
     {/* Your existing CivicLens content */}
-        {activePage === "dashboard" && <h1>Dashboard Page</h1>}
-
-        {activePage === "upload" && <h1>Upload Feedback Page</h1>}
-
-       {activePage === "feedback" && <h1>Feedback List Page</h1>}
-
-      {activePage === "insights" && <h1>Insights Page</h1>}   
-
+        
       {/* =========================
           HEADER
       ========================= */}
@@ -300,7 +293,7 @@ const downloadFilteredResults = () => {
           <div className="brand">
 
             <div className="brand-icon">
-              C
+              
             </div>
 
             <div>
@@ -358,8 +351,9 @@ const downloadFilteredResults = () => {
         {/* =========================
             UPLOAD CARD
         ========================= */}
-
-        <section className="upload-card" id="upload">
+        {activePage === "upload" && (
+         <section className="upload-card" id="upload">
+       
 
           <div className="upload-icon">
             📄
@@ -467,13 +461,18 @@ const downloadFilteredResults = () => {
           </p>
 
         </section>
+        )}
           
          {/* =========================
     LANGUAGE DASHBOARD
 ========================= */}
 
-{results.length > 0 && (
-      <section className="language-dashboard" id="dashboard">
+  {activePage === "dashboard" && results.length === 0 && (
+  <p>No feedback uploaded yet. Please upload a file first.</p>
+)}
+
+{activePage === "dashboard" && results.length > 0 && (
+  <section className="language-dashboard" id="dashboard">
 
     <h2>Language Analysis</h2>
 
@@ -539,7 +538,7 @@ const downloadFilteredResults = () => {
 )}
 {/* FEEDBACK TABLE */}
 
-{results.length > 0 && (
+{activePage === "feedback" && results.length > 0 && (
   <FeedbackTable results={results} />
 )}
 
@@ -549,7 +548,7 @@ const downloadFilteredResults = () => {
     LOCATION DASHBOARD
 ========================= */}
 
-{results.length > 0 && (
+{activePage === "insights" && results.length > 0 && (
   <section className="location-dashboard">
 
     <h2>Location Analysis</h2>
@@ -585,7 +584,7 @@ const downloadFilteredResults = () => {
     SENTIMENT DASHBOARD
 ========================= */}
 
-{results.length > 0 && (
+{activePage === "insights" && results.length > 0 && (
   <section className="sentiment-dashboard" id="insights">
 
     <h2>Sentiment Analysis</h2>
@@ -632,10 +631,9 @@ const downloadFilteredResults = () => {
         {/* =========================
             RESULTS SECTION
         ========================= */}
-
-        {results.length > 0 && (
-
-          <section className="results-section">
+          {activePage === "feedback" && results.length > 0 && (
+             <section className="results-section">
+        
 
             {/* =========================
     FILTER CONTROLS

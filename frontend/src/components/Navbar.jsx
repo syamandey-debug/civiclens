@@ -1,18 +1,25 @@
-function Navbar() {
+function Navbar({ setActivePage }) {
   return (
     <nav className="navbar">
-
-      <div className="navbar-logo">
-        CivicLens
-      </div>
+      <div className="navbar-logo">CivicLens</div>
 
       <div className="navbar-links">
-        <a href="#home">Home</a>
-        <a href="#dashboard">Dashboard</a>
-        <a href="#upload">Upload</a>
-        <a href="#insights">Insights</a>
-      </div>
+        <button onClick={() => setActivePage("dashboard")}>
+          Home
+        </button>
 
+        <button onClick={() => setActivePage("dashboard")}>
+          Dashboard
+        </button>
+
+        <button onClick={() => setActivePage("upload")}>
+          Upload
+        </button>
+
+        <button onClick={() => setActivePage("insights")}>
+          Insights
+        </button>
+      </div>
     </nav>
   );
 }
