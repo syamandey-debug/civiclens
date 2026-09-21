@@ -271,7 +271,7 @@ const downloadFilteredResults = () => {
 
   return (
     <div className="app">
-      <Sidebar />
+      <Sidebar setActivePage={setActivePage} />
 
     <div className="main-content">
 
@@ -281,6 +281,13 @@ const downloadFilteredResults = () => {
        <Navbar />
 
     {/* Your existing CivicLens content */}
+        {activePage === "dashboard" && <h1>Dashboard Page</h1>}
+
+        {activePage === "upload" && <h1>Upload Feedback Page</h1>}
+
+       {activePage === "feedback" && <h1>Feedback List Page</h1>}
+
+      {activePage === "insights" && <h1>Insights Page</h1>}   
 
       {/* =========================
           HEADER
