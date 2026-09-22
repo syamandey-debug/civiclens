@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import StatCard from "./components/StatCard";
 import Navbar from "./components/Navbar";
 import UploadBox from "./components/UploadBox";
@@ -16,8 +16,23 @@ function App() {
 const [selectedLanguage, setSelectedLanguage] = useState("All");
 const [selectedLocation, setSelectedLocation] = useState("All");
 const [activePage, setActivePage] = useState("dashboard");
+  useEffect(() => {
+  fetch("http://127.0.0.1:8000/feedback/")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to fetch feedback");
+      }
 
-  
+      return response.json();
+    })
+    .then((data) => {
+      console.log("Feedback from backend:", data);
+      setResults(data);
+    })
+    .catch((error) => {
+      console.error("Error fetching feedback:", error);
+    });
+}, []);
   
   // =========================
 // LANGUAGE ANALYSIS
@@ -50,7 +65,7 @@ const locationCounts = results.reduce((counts, item) => {
 // =========================
 
 const sentimentCounts = results.reduce((counts, item) => {
-  const sentiment = item.sentiment;
+  const sentiment = item.predicted_sentiment;
 
   if (!sentiment) {
     return counts;
@@ -63,6 +78,16 @@ const sentimentCounts = results.reduce((counts, item) => {
 
 const hasSentimentData =
   Object.keys(sentimentCounts).length > 0;
+
+ console.log(
+  "SENTIMENT VALUES:",
+  results.map((item) => ({
+    comment_id: item.comment_id,
+    keys: Object.keys(item),
+    predicted_sentiment: item.predicted_sentiment,
+    sentiment: item.sentiment
+  }))
+);
 
   // =========================
 // SEARCH AND FILTER
@@ -199,12 +224,18 @@ const clearFilters = () => {
   "Backend response:",
   JSON.stringify(data, null, 2)
 );
-      // Store processed results
-      if (Array.isArray(data.data)) {
-        setResults(data.data);
-      } else {
-        setResults([]);
-      }
+      // Fetch complete feedback data from database
+const feedbackResponse = await fetch(
+  "http://127.0.0.1:8000/feedback/"
+);
+
+if (!feedbackResponse.ok) {
+  throw new Error("Failed to fetch feedback");
+}
+
+const feedbackData = await feedbackResponse.json();
+
+setResults(feedbackData);
 
       // Success message
       setMessage("File uploaded successfully!");
@@ -599,34 +630,36 @@ const downloadFilteredResults = () => {
 
       <div className="sentiment-cards">
 
-        {Object.entries(sentimentCounts).map(
-          ([sentiment, count]) => (
+        {["Positive", "Negative", "Neutral"].map(
+          (sentiment) => {
 
-            <div
-              className="sentiment-card"
-              key={sentiment}
-            >
+            const count =
+              sentimentCounts[sentiment] || 0;
 
-              <h3>{sentiment}</h3>
+            return (
+              <div
+                className={`sentiment-card ${sentiment.toLowerCase()}`}
+                key={sentiment}
+              >
 
-              <p>{count}</p>
+                <h3>{sentiment}</h3>
 
-              <span>
-                Feedback Records
-              </span>
+                <p>{count}</p>
 
-            </div>
+                <span>
+                  Feedback Records
+                </span>
 
-          )
+              </div>
+            );
+          }
         )}
 
       </div>
-
     )}
 
   </section>
 )}
-
 
         {/* =========================
             RESULTS SECTION
@@ -718,6 +751,7 @@ const downloadFilteredResults = () => {
         <th>Language</th>
         <th>Date</th>
         <th>Location</th>
+        <th>Sentiment</th>
       </tr>
     </thead>
 
@@ -726,8 +760,22 @@ const downloadFilteredResults = () => {
       {filteredResults.length > 0 ? (
         filteredResults.map((item, index) => (
           <tr key={item.comment_id || index}>
-            <td>{item.comment_id}</td>
-            <td>{item.comment}</td>
+            <td>
+  <div>{item.comment}</div>
+
+  <div
+    className={`sentiment-badge ${
+      item.predicted_sentiment
+        ? item.predicted_sentiment.toLowerCase()
+        : "not-available"
+    }`}
+  >
+    {item.predicted_sentiment || "Not available"}
+  </div>
+</td>
+  
+
+
             <td>
               <span className="language-badge">
                 {item.language}

@@ -546,10 +546,17 @@ async def upload_feedback(
             date=feedback_date,
             location=location
         )
-
         db.add(new_feedback)
 
+        print(
+            "SAVING FEEDBACK:",
+            comment_id,
+            comment,
+            predicted_sentiment
+        )
+
         saved_count += 1
+        
 
     # --------------------------------------------------------
     # 7. Save records
@@ -597,11 +604,9 @@ class FeedbackPredictionRequest(BaseModel):
 def predict_feedback(
     request: FeedbackPredictionRequest
 ):
-
     comment = request.comment.strip()
 
     if not comment:
-
         raise HTTPException(
             status_code=400,
             detail="Comment cannot be empty."
