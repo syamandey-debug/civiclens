@@ -23,6 +23,7 @@ from app.models import Feedback
 from app.services.data_cleaning import clean_feedback_data
 from app.services.language_detection import detect_language
 from app.services.translation import translate_to_english
+from app.services.topic_classification import classify_topic
 
 
 router = APIRouter()
@@ -178,6 +179,8 @@ def get_feedback(
             "language": item.language,
             "translated_comment": item.translated_comment,
             "predicted_sentiment":item.predicted_sentiment,
+            "predicted_topic":item.predicted_topic,
+            "topic_score": item.topic_score,
             "date": item.date,
             "location": item.location,
             "created_at": item.created_at
@@ -240,6 +243,10 @@ def add_feedback(
     )
 
     predicted_sentiment = prediction_result["sentiment"]
+    topic_result = classify_topic(translated_comment)
+
+    predicted_topic = topic_result["topic"]
+    topic_score = topic_result["score"]
 
     # Parse date
     feedback_date = None
@@ -288,6 +295,8 @@ def add_feedback(
                 new_feedback.translated_comment
             ),
             "predicted_sentiment": new_feedback.predicted_sentiment,
+            "predicted_topic":new_feedback.predicted_topic,
+            "topic_score" : new_feedback.topic_score,
             "date": new_feedback.date,
             "location": new_feedback.location
         }
@@ -543,6 +552,8 @@ async def upload_feedback(
             language=language,
             translated_comment=translated_comment,
             predicted_sentiment=predicted_sentiment,
+            predicted_topic=predicted_topic,
+            topic_score=topic_score,
             date=feedback_date,
             location=location
         )

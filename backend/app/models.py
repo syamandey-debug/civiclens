@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime
+from sqlalchemy import Column, Integer, String, Date, DateTime ,Float
 from datetime import datetime
 
 from app.database import Base
@@ -13,6 +13,8 @@ class Feedback(Base):
     comment = Column(String, nullable=False)
     translated_comment = Column(String, nullable=True)
     predicted_sentiment = Column(String, nullable=True)
+    predicted_topic = Column(String, nullable=True)
+    topic_score = Column(Float, nullable=True)
     language = Column(String, nullable=True)
     date = Column(Date, nullable=True)
     location = Column(String, nullable=True)
