@@ -636,9 +636,16 @@ const downloadFilteredResults = () => {
           outerRadius={100}
           label
         >
-          {sentimentChartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} />
-          ))}
+          {sentimentChartData.map((entry, index) => {
+  const colors = ["#22c55e", "#ef4444", "#f59e0b"];
+
+  return (
+    <Cell
+      key={`cell-${index}`}
+      fill={colors[index]}
+    />
+  );
+})}
         </Pie>
 
         <Tooltip />
@@ -663,9 +670,23 @@ const downloadFilteredResults = () => {
           outerRadius={100}
           label
         >
-          {topicChartData.map((entry, index) => (
-            <Cell key={`topic-cell-${index}`} />
-          ))}
+          {topicChartData.map((entry, index) => {
+  const colors = [
+    "#3b82f6",
+    "#8b5cf6",
+    "#06b6d4",
+    "#f97316",
+    "#14b8a6",
+    "#ec4899",
+  ];
+
+  return (
+    <Cell
+      key={`topic-cell-${index}`}
+      fill={colors[index % colors.length]}
+    />
+  );
+})}
         </Pie>
 
         <Tooltip />

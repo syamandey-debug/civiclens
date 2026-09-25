@@ -1405,3 +1405,18 @@
     grid-template-columns: 1fr;
   }
 }
+
+.sentiment-badge.positive {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.sentiment-badge.negative {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.sentiment-badge.neutral {
+  background-color: #fef3c7;
+  color: #92400e;
+}
