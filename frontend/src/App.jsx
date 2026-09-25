@@ -170,6 +170,19 @@ const sentimentChartData = [
   },
 ];
 
+const topicChartData = Object.entries(
+  results.reduce((acc, item) => {
+    const topic = item.predicted_topic || "Unknown";
+
+    acc[topic] = (acc[topic] || 0) + 1;
+
+    return acc;
+  }, {})
+).map(([name, value]) => ({
+  name,
+  value,
+}));
+
 
 const filteredResults = results.filter((item) => {
 
@@ -607,6 +620,61 @@ const downloadFilteredResults = () => {
 
       </div>
     )}
+     
+     {results.length > 0 && (
+  <div className="chart-card">
+    <h2>Sentiment Distribution</h2>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Pie
+          data={sentimentChartData}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={100}
+          label
+        >
+          {sentimentChartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} />
+          ))}
+        </Pie>
+
+        <Tooltip />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  </div>
+)}
+
+    {results.length > 0 && (
+  <div className="chart-card">
+    <h2>Topic Distribution</h2>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Pie
+          data={topicChartData}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={100}
+          label
+        >
+          {topicChartData.map((entry, index) => (
+            <Cell key={`topic-cell-${index}`} />
+          ))}
+        </Pie>
+
+        <Tooltip />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  </div>
+)}
+
 
     {results.length === 0 && (
       <p>No feedback uploaded yet. Please upload a file first.</p>
