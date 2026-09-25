@@ -6,6 +6,14 @@ import FeedbackTable from "./components/FeedbackTable";
 import Sidebar from "./components/Sidebar";
 import "./index.css";
 
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 function App() {
   const [file, setFile] = useState(null);
@@ -13,6 +21,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState("All");
+const [selectedSentiment, setSelectedSentiment] = useState("All");
 const [selectedLanguage, setSelectedLanguage] = useState("All");
 const [selectedLocation, setSelectedLocation] = useState("All");
 const [activePage, setActivePage] = useState("dashboard");
@@ -26,9 +36,13 @@ const [activePage, setActivePage] = useState("dashboard");
       return response.json();
     })
     .then((data) => {
-      console.log("Feedback from backend:", data);
-      setResults(data);
-    })
+  console.log("Feedback from backend:", data);
+  console.log("FIRST FEEDBACK:", data[0]);
+  console.log("TOPIC:", data[0]?.predicted_topic);
+  console.log("TOPIC SCORE:", data[0]?.topic_score);
+
+  setResults(data);
+})
     .catch((error) => {
       console.error("Error fetching feedback:", error);
     });
@@ -107,7 +121,58 @@ const locations = [
   ),
 ];
 
+const topics = [
+  "All",
+  ...new Set(
+    results.map((item) => item.predicted_topic).filter(Boolean)
+  ),
+];
+
+const sentiments = [
+  "All",
+  ...new Set(
+    results.map((item) => item.predicted_sentiment).filter(Boolean)
+  ),
+];
+
+const totalFeedback = results.length;
+
+const positiveCount = results.filter(
+  (item) => item.predicted_sentiment?.toLowerCase() === "positive"
+).length;
+
+const negativeCount = results.filter(
+  (item) => item.predicted_sentiment?.toLowerCase() === "negative"
+).length;
+
+const neutralCount = results.filter(
+  (item) => item.predicted_sentiment?.toLowerCase() === "neutral"
+).length;
+
+const topicCount = new Set(
+  results
+    .map((item) => item.predicted_topic)
+    .filter(Boolean)
+).size;
+
+const sentimentChartData = [
+  {
+    name: "Positive",
+    value: positiveCount,
+  },
+  {
+    name: "Negative",
+    value: negativeCount,
+  },
+  {
+    name: "Neutral",
+    value: neutralCount,
+  },
+];
+
+
 const filteredResults = results.filter((item) => {
+
   const matchesSearch = (item.comment || "")
     .toLowerCase()
     .includes(searchTerm.toLowerCase());
@@ -119,11 +184,21 @@ const filteredResults = results.filter((item) => {
   const matchesLocation =
     selectedLocation === "All" ||
     item.location === selectedLocation;
+  
+  const matchesTopic =
+  selectedTopic === "All" ||
+  item.predicted_topic === selectedTopic;
+
+  const matchesSentiment =
+  selectedSentiment === "All" ||
+  item.predicted_sentiment === selectedSentiment;
 
   return (
     matchesSearch &&
     matchesLanguage &&
-    matchesLocation
+    matchesLocation &&
+    matchesTopic &&
+    matchesSentiment
   );
 });
 
@@ -136,6 +211,8 @@ const clearFilters = () => {
   setSearchTerm("");
   setSelectedLanguage("All");
   setSelectedLocation("All");
+  setSelectedTopic("All");
+  setSelectedSentiment("All");
 };
     
 // =========================
@@ -495,11 +572,47 @@ const downloadFilteredResults = () => {
         )}
           
          {/* =========================
-    LANGUAGE DASHBOARD
-========================= */}
+                 LANGUAGE DASHBOARD
+          ========================= */}
+{activePage === "dashboard" && (
+  <>
 
-  {activePage === "dashboard" && results.length === 0 && (
-  <p>No feedback uploaded yet. Please upload a file first.</p>
+    {results.length > 0 && (
+      <div className="stats-grid">
+
+        <div className="stat-card">
+          <h3>Total Feedback</h3>
+          <div className="stat-value">{totalFeedback}</div>
+        </div>
+
+        <div className="stat-card">
+          <h3>Positive</h3>
+          <div className="stat-value">{positiveCount}</div>
+        </div>
+
+        <div className="stat-card">
+          <h3>Negative</h3>
+          <div className="stat-value">{negativeCount}</div>
+        </div>
+
+        <div className="stat-card">
+          <h3>Neutral</h3>
+          <div className="stat-value">{neutralCount}</div>
+        </div>
+
+        <div className="stat-card">
+          <h3>Topics</h3>
+          <div className="stat-value">{topicCount}</div>
+        </div>
+
+      </div>
+    )}
+
+    {results.length === 0 && (
+      <p>No feedback uploaded yet. Please upload a file first.</p>
+    )}
+
+  </>
 )}
 
 {activePage === "dashboard" && results.length > 0 && (
@@ -612,8 +725,8 @@ const downloadFilteredResults = () => {
   </section>
 )}           
             {/* =========================
-    SENTIMENT DASHBOARD
-========================= */}
+                SENTIMENT DASHBOARD
+            ========================= */}
 
 {activePage === "insights" && results.length > 0 && (
   <section className="sentiment-dashboard" id="insights">
@@ -716,6 +829,35 @@ const downloadFilteredResults = () => {
 
   </select>
 
+  {/* TOPIC FILTER */}
+
+<select
+  value={selectedTopic}
+  onChange={(e) => setSelectedTopic(e.target.value)}
+  className="filter-select"
+>
+  {topics.map((topic) => (
+    <option key={topic} value={topic}>
+      {topic}
+    </option>
+  ))}
+</select>
+
+{/* SENTIMENT FILTER */}
+
+<select
+  value={selectedSentiment}
+  onChange={(e) => setSelectedSentiment(e.target.value)}
+  className="filter-select"
+>
+  {sentiments.map((sentiment) => (
+    <option key={sentiment} value={sentiment}>
+      {sentiment}
+    </option>
+  ))}
+</select>
+
+
   <button
     className="clear-filters-button"
     onClick={clearFilters}
@@ -745,55 +887,72 @@ const downloadFilteredResults = () => {
   <table className="results-table">
 
     <thead>
-      <tr>
-        <th>ID</th>
-        <th>Comment</th>
-        <th>Language</th>
-        <th>Date</th>
-        <th>Location</th>
-        <th>Sentiment</th>
+  <tr>
+    <th>ID</th>
+    <th>Comment</th>
+    <th>Language</th>
+    <th>Date</th>
+    <th>Location</th>
+    <th>Sentiment</th>
+    <th>Topic</th>
+    <th>Topic Score</th>
+  </tr>
+</thead>
+  <tbody>
+  {filteredResults.length > 0 ? (
+    filteredResults.map((item, index) => (
+      <tr key={item.comment_id || index}>
+
+        <td>{item.comment_id}</td>
+
+        <td>
+          <div>{item.comment}</div>
+        </td>
+
+        <td>
+          <span className="language-badge">
+            {item.language || "—"}
+          </span>
+        </td>
+
+        <td>{item.date || "—"}</td>
+
+        <td>{item.location || "—"}</td>
+
+        <td>
+          <span
+            className={`sentiment-badge ${
+              item.predicted_sentiment
+                ? item.predicted_sentiment.toLowerCase()
+                : "not-available"
+            }`}
+          >
+            {item.predicted_sentiment || "Not available"}
+          </span>
+        </td>
+
+        <td>
+          {item.predicted_topic || "—"}
+        </td>
+
+        <td>
+          {item.topic_score !== null &&
+          item.topic_score !== undefined
+            ? Number(item.topic_score).toFixed(2)
+            : "—"}
+        </td>
+
       </tr>
-    </thead>
-
-    <tbody>
-
-      {filteredResults.length > 0 ? (
-        filteredResults.map((item, index) => (
-          <tr key={item.comment_id || index}>
-            <td>
-  <div>{item.comment}</div>
-
-  <div
-    className={`sentiment-badge ${
-      item.predicted_sentiment
-        ? item.predicted_sentiment.toLowerCase()
-        : "not-available"
-    }`}
-  >
-    {item.predicted_sentiment || "Not available"}
-  </div>
-</td>
-  
-
-
-            <td>
-              <span className="language-badge">
-                {item.language}
-              </span>
-            </td>
-            <td>{item.date}</td>
-            <td>{item.location}</td>
-          </tr>
-        ))
-      ) : (
-        <tr>
-          <td colSpan="5" className="no-results">
-            No feedback found matching your search or filters.
-          </td>
-        </tr>
-      )}
-
-    </tbody>
+    ))
+  ) : (
+    <tr>
+      <td colSpan="8" className="no-results">
+        No feedback found matching your search or filters.
+      </td>
+    </tr>
+  )}
+</tbody>
+    
 
   </table>
 

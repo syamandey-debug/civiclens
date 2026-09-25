@@ -270,14 +270,16 @@ def add_feedback(
 
     # Create database record
     new_feedback = Feedback(
-        comment_id=feedback["comment_id"],
-        comment=comment,
-        language=language,
-        translated_comment=translated_comment,
-        predicted_sentiment=predicted_sentiment,
-        date=feedback_date,
-        location=feedback.get("location")
-    )
+    comment_id=feedback["comment_id"],
+    comment=comment,
+    language=language,
+    translated_comment=translated_comment,
+    predicted_sentiment=predicted_sentiment,
+    predicted_topic=predicted_topic,
+    topic_score=topic_score,
+    date=feedback_date,
+    location=feedback.get("location")
+)
 
     db.add(new_feedback)
     db.commit()
@@ -307,17 +309,20 @@ def add_feedback(
 
 def fill_missing_sentiments(db: Session):
 
-    missing_feedback = (
+    missing_topics = (
         db.query(Feedback)
-        .filter(
-            Feedback.predicted_sentiment.is_(None)
-        )
+        .filter(Feedback.predicted_topic.is_(None))
         .all()
+    )
+
+    print(
+        "MISSING TOPIC RECORDS:",
+        len(missing_topics)
     )
 
     updated_count = 0
 
-    for feedback in missing_feedback:
+    for feedback in missing_topics:
 
         try:
 
@@ -327,26 +332,31 @@ def fill_missing_sentiments(db: Session):
                 else feedback.comment
             )
 
-            prediction_result = predict_sentiment(
+            topic_result = classify_topic(
                 text_for_prediction
             )
 
-            feedback.predicted_sentiment = (
-                prediction_result["sentiment"]
+            feedback.predicted_topic = (
+                topic_result["topic"]
+            )
+
+            feedback.topic_score = (
+                topic_result["score"]
             )
 
             updated_count += 1
 
             print(
-                "BACKFILLED SENTIMENT:",
+                "BACKFILLED TOPIC:",
                 feedback.comment_id,
-                feedback.predicted_sentiment
+                feedback.predicted_topic,
+                feedback.topic_score
             )
 
         except Exception as error:
 
             print(
-                "FAILED TO PREDICT:",
+                "FAILED TOPIC:",
                 feedback.comment_id,
                 str(error)
             )
