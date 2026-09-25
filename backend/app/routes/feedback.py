@@ -301,6 +301,62 @@ def add_feedback(
             "location": new_feedback.location
         }
     }
+  # ============================================================
+# BACKFILL MISSING SENTIMENTS
+# ============================================================
+
+def fill_missing_sentiments(db: Session):
+
+    missing_feedback = (
+        db.query(Feedback)
+        .filter(
+            Feedback.predicted_sentiment.is_(None)
+        )
+        .all()
+    )
+
+    updated_count = 0
+
+    for feedback in missing_feedback:
+
+        try:
+
+            text_for_prediction = (
+                feedback.translated_comment
+                if feedback.translated_comment
+                else feedback.comment
+            )
+
+            prediction_result = predict_sentiment(
+                text_for_prediction
+            )
+
+            feedback.predicted_sentiment = (
+                prediction_result["sentiment"]
+            )
+
+            updated_count += 1
+
+            print(
+                "BACKFILLED SENTIMENT:",
+                feedback.comment_id,
+                feedback.predicted_sentiment
+            )
+
+        except Exception as error:
+
+            print(
+                "FAILED TO PREDICT:",
+                feedback.comment_id,
+                str(error)
+            )
+
+    if updated_count > 0:
+        db.commit()
+
+    return updated_count
+
+
 
 
 # ============================================================
