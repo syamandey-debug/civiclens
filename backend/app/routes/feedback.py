@@ -4,6 +4,9 @@ from datetime import datetime
 import pickle
 import pandas as pd
 
+import sys
+from pathlib import Path
+
 from scipy.sparse import hstack
 
 from fastapi import (
@@ -25,6 +28,20 @@ from app.services.language_detection import detect_language
 from app.services.translation import translate_to_english
 from app.services.topic_classification import classify_topic
 
+# --------------------------------------------------
+# Semantic search setup
+# --------------------------------------------------
+
+EMBEDDING_FOLDER = (
+    Path(__file__).resolve().parents[2] / "embedding"
+)
+
+if str(EMBEDDING_FOLDER) not in sys.path:
+    sys.path.append(str(EMBEDDING_FOLDER))
+
+from search import search_similar_feedback
+
+from duplicate_detection import find_near_duplicates
 
 router = APIRouter()
 
@@ -696,4 +713,39 @@ def predict_feedback(
     return {
         "comment": comment,
         **prediction_result
+    }
+
+@router.post("/similar")
+def find_similar_feedback(request: FeedbackPredictionRequest):
+
+    query = request.comment.strip()
+
+    if not query:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Comment cannot be empty."
+        )
+
+    results = search_similar_feedback(
+        query,
+        top_k=3
+    )
+
+    return {
+        "query": query,
+        "results": results
+    }
+
+@router.get("/duplicates")
+def get_near_duplicates():
+
+    results = find_near_duplicates(
+        threshold=0.80
+    )
+
+    return {
+        "threshold": 0.80,
+        "count": len(results),
+        "duplicates": results
     }

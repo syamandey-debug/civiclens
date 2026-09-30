@@ -13,14 +13,12 @@ MODEL_NAME = (
 )
 
 
-# --------------------------------------------------
-# 2. File locations
-# --------------------------------------------------
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parents[2]
 
-INPUT_FILE = "../../data/feedback.csv"
+INPUT_FILE = BASE_DIR / "data" / "feedback.csv"
 
-OUTPUT_FILE = "../../data/feedback_embeddings.npy"
-
+OUTPUT_FILE = BASE_DIR / "data" / "feedback_embeddings.npy"
 
 # --------------------------------------------------
 # 3. Load the embedding model

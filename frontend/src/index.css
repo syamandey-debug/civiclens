@@ -1479,3 +1479,83 @@ body {
 .navbar-links button:hover {
   color: #fbbf24;
 }
+
+/* =========================
+   SEMANTIC SEARCH
+========================= */
+
+.semantic-search-section {
+  margin-top: 30px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.semantic-search-section h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.semantic-search-section p {
+  margin-bottom: 18px;
+  color: #6b7280;
+}
+
+.semantic-search-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.semantic-search-controls .search-input {
+  flex: 1;
+}
+
+/* =========================
+   SEMANTIC SEARCH RESULTS
+========================= */
+
+.semantic-results {
+  margin-top: 20px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.semantic-results h3 {
+  margin-top: 0;
+  margin-bottom: 18px;
+}
+
+.semantic-result-card {
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.semantic-result-card:last-child {
+  margin-bottom: 0;
+}
+
+.semantic-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 8px;
+}
+
+.semantic-result-header span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.semantic-result-card p {
+  margin: 0;
+  line-height: 1.5;
+  color: #374151;
+}

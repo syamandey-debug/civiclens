@@ -21,6 +21,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [semanticQuery, setSemanticQuery] = useState("");
+const [semanticResults, setSemanticResults] = useState([]);
+const [semanticLoading, setSemanticLoading] = useState(false);
+const [duplicateResults, setDuplicateResults] = useState([]);
+const [duplicateLoading, setDuplicateLoading] = useState(false);
+
   const [selectedTopic, setSelectedTopic] = useState("All");
 const [selectedSentiment, setSelectedSentiment] = useState("All");
 const [selectedLanguage, setSelectedLanguage] = useState("All");
@@ -226,6 +233,117 @@ const clearFilters = () => {
   setSelectedLocation("All");
   setSelectedTopic("All");
   setSelectedSentiment("All");
+};
+
+// =========================
+// SEMANTIC SEARCH
+// =========================
+
+const handleSemanticSearch = async () => {
+
+  if (!semanticQuery.trim()) {
+    alert("Please enter a feedback comment to search.");
+    return;
+  }
+
+  try {
+
+    setSemanticLoading(true);
+    setSemanticResults([]);
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/feedback/similar",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          comment: semanticQuery,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Semantic search failed: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    console.log(
+      "Semantic search response:",
+      data
+    );
+
+    setSemanticResults(
+      data.results || []
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Semantic search error:",
+      error
+    );
+
+    alert(
+      "Semantic search failed. Please try again."
+    );
+
+  } finally {
+
+    setSemanticLoading(false);
+
+  }
+};
+
+const handleDuplicateDetection = async () => {
+
+  try {
+
+    setDuplicateLoading(true);
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/feedback/duplicates"
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Duplicate detection failed: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    console.log(
+      "Duplicate detection response:",
+      data
+    );
+
+    setDuplicateResults(
+      data.duplicates || []
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Duplicate detection error:",
+      error
+    );
+
+    alert(
+      "Duplicate detection failed. Please try again."
+    );
+
+  } finally {
+
+    setDuplicateLoading(false);
+
+  }
 };
     
 // =========================
@@ -869,6 +987,148 @@ const downloadFilteredResults = () => {
           {activePage === "feedback" && results.length > 0 && (
              <section className="results-section">
         
+       {/* =========================
+    SEMANTIC SEARCH
+========================= */}
+
+<div className="semantic-search-section">
+
+  <h3>Find Similar Feedback</h3>
+
+  <p>
+    Enter a citizen comment to find semantically similar feedback.
+  </p>
+
+  <div className="semantic-search-controls">
+
+    <input
+      type="text"
+      placeholder="Example: Government services are difficult to access..."
+      value={semanticQuery}
+      onChange={(e) => setSemanticQuery(e.target.value)}
+      className="search-input"
+    />
+
+    <button
+      className="download-button"
+      onClick={handleSemanticSearch}
+      disabled={semanticLoading}
+    >
+      {semanticLoading
+        ? "Searching..."
+        : "Find Similar Feedback"}
+    </button>
+
+  </div>
+
+</div>
+
+{/* =========================
+    SEMANTIC SEARCH RESULTS
+========================= */}
+
+{semanticResults.length > 0 && (
+  <div className="semantic-results">
+
+    <h3>Similar Feedback</h3>
+
+    {semanticResults.map((item, index) => (
+      <div
+        className="semantic-result-card"
+        key={item.comment_id || index}
+      >
+
+        <div className="semantic-result-header">
+
+          <strong>
+            Feedback #{item.comment_id}
+          </strong>
+
+          <span>
+            Similarity:{" "}
+            {Number(item.similarity).toFixed(4)}
+          </span>
+
+        </div>
+
+        <p>
+          {item.comment}
+        </p>
+
+      </div>
+    ))}
+
+  </div>
+)}
+
+{/* =========================
+    DUPLICATE DETECTION
+========================= */}
+
+<div className="duplicate-detection-section">
+
+  <h3>Detect Near-Duplicate Feedback</h3>
+
+  <p>
+    Find feedback comments that are very similar to each other.
+  </p>
+
+  <button
+    className="download-button"
+    onClick={handleDuplicateDetection}
+    disabled={duplicateLoading}
+  >
+    {duplicateLoading
+      ? "Checking..."
+      : "Detect Near-Duplicates"}
+  </button>
+
+</div>
+{/* =========================
+    DUPLICATE RESULTS
+========================= */}
+
+{duplicateResults.length > 0 && (
+  <div className="duplicate-results">
+
+    <h3>Possible Near-Duplicates</h3>
+
+    {duplicateResults.map((item, index) => (
+      <div
+        className="duplicate-result-card"
+        key={`${item.comment_id_1}-${item.comment_id_2}-${index}`}
+      >
+
+        <div className="duplicate-result-header">
+
+          <strong>
+            Feedback #{item.comment_id_1}
+            {" ↔ "}
+            Feedback #{item.comment_id_2}
+          </strong>
+
+          <span>
+            Similarity:{" "}
+            {Number(item.similarity).toFixed(4)}
+          </span>
+
+        </div>
+
+        <p>
+          <strong>Comment 1:</strong>{" "}
+          {item.comment_1}
+        </p>
+
+        <p>
+          <strong>Comment 2:</strong>{" "}
+          {item.comment_2}
+        </p>
+
+      </div>
+    ))}
+
+  </div>
+)}
 
             {/* =========================
     FILTER CONTROLS
