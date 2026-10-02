@@ -576,6 +576,12 @@ async def upload_feedback(
         )
 
         predicted_sentiment = prediction_result["sentiment"]
+        topic_result = classify_topic(
+            translated_comment
+        )
+
+        predicted_topic = topic_result["topic"]
+        topic_score = topic_result["score"]
 
         # ----------------------------------------------------
         # Process date
