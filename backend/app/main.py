@@ -2,7 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import feedback
-from app.routes.feedback import fill_missing_sentiments
+from app.routes.feedback import (
+    fill_missing_sentiments,
+    fill_missing_embeddings
+)
 from app.database import engine, Base, SessionLocal
 from app import models
 
@@ -33,6 +36,12 @@ def run_sentiment_backfill():
         print(
             f"Sentiment backfill completed: "
             f"{updated_count} records updated."
+        )
+        embedding_count = fill_missing_embeddings(db)
+
+        print(
+            f"Embedding backfill completed: "
+            f"{embedding_count} records updated."
         )
 
     except Exception as error:

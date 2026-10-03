@@ -1,22 +1,25 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime ,Float
+from sqlalchemy import Column, Integer, String, Date, DateTime, Float, JSON
 from datetime import datetime
-
 from app.database import Base
-
 
 class Feedback(Base):
     __tablename__ = "feedback"
 
     id = Column(Integer, primary_key=True, index=True)
-
     comment_id = Column(Integer, unique=True, nullable=False)
     comment = Column(String, nullable=False)
+
     translated_comment = Column(String, nullable=True)
+
     predicted_sentiment = Column(String, nullable=True)
+
     predicted_topic = Column(String, nullable=True)
     topic_score = Column(Float, nullable=True)
+
     language = Column(String, nullable=True)
     date = Column(Date, nullable=True)
     location = Column(String, nullable=True)
+
+    embedding = Column(JSON, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)

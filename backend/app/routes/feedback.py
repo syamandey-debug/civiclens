@@ -27,6 +27,8 @@ from app.services.data_cleaning import clean_feedback_data
 from app.services.language_detection import detect_language
 from app.services.translation import translate_to_english
 from app.services.topic_classification import classify_topic
+from app.services.embedding_service import generate_embedding
+
 
 # --------------------------------------------------
 # Semantic search setup
@@ -39,11 +41,12 @@ EMBEDDING_FOLDER = (
 if str(EMBEDDING_FOLDER) not in sys.path:
     sys.path.append(str(EMBEDDING_FOLDER))
 
-from search import search_similar_feedback
 
-from duplicate_detection import find_near_duplicates
 
 router = APIRouter()
+from app.services.semantic_search import search_similar_feedback
+
+from duplicate_detection import find_near_duplicates
 
 
 # ============================================================
@@ -58,6 +61,7 @@ def get_db():
 
     finally:
         db.close()
+
 
 
 # ============================================================
@@ -382,7 +386,56 @@ def fill_missing_sentiments(db: Session):
         db.commit()
 
     return updated_count
+def fill_missing_embeddings(db: Session):
 
+    missing_embeddings = (
+        db.query(Feedback)
+        .filter(Feedback.embedding.is_(None))
+        .all()
+    )
+
+    print(
+        "MISSING EMBEDDING RECORDS:",
+        len(missing_embeddings)
+    )
+
+    updated_count = 0
+
+    for feedback in missing_embeddings:
+
+        try:
+
+            text_for_embedding = (
+                feedback.translated_comment
+                if feedback.translated_comment
+                else feedback.comment
+            )
+
+            embedding = generate_embedding(
+                text_for_embedding
+            )
+
+            feedback.embedding = embedding
+
+            updated_count += 1
+
+            print(
+                "BACKFILLED EMBEDDING:",
+                feedback.comment_id
+            )
+
+        except Exception as error:
+
+            print(
+                "FAILED EMBEDDING:",
+                feedback.comment_id,
+                str(error)
+            )
+
+    if updated_count > 0:
+        db.commit()
+
+    return updated_count
 
 
 
@@ -582,6 +635,7 @@ async def upload_feedback(
 
         predicted_topic = topic_result["topic"]
         topic_score = topic_result["score"]
+        embedding = generate_embedding(translated_comment)
 
         # ----------------------------------------------------
         # Process date
@@ -643,6 +697,7 @@ async def upload_feedback(
             predicted_sentiment=predicted_sentiment,
             predicted_topic=predicted_topic,
             topic_score=topic_score,
+            embedding=embedding,
             date=feedback_date,
             location=location
         )
@@ -722,7 +777,11 @@ def predict_feedback(
     }
 
 @router.post("/similar")
-def find_similar_feedback(request: FeedbackPredictionRequest):
+@router.post("/similar")
+def find_similar_feedback(
+    request: FeedbackPredictionRequest,
+    db: Session = Depends(get_db)
+):
 
     query = request.comment.strip()
 
@@ -734,8 +793,9 @@ def find_similar_feedback(request: FeedbackPredictionRequest):
         )
 
     results = search_similar_feedback(
-        query,
-        top_k=3
+    db,
+    query,
+    top_k=3
     )
 
     return {
