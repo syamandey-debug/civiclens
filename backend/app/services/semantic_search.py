@@ -7,7 +7,8 @@ from app.services.embedding_service import generate_embedding
 def search_similar_feedback(
     db,
     query,
-    top_k=3
+    top_k=3,
+    threshold=0.50
 ):
     # Generate embedding for the search query
     query_embedding = generate_embedding(query)
@@ -33,16 +34,27 @@ def search_similar_feedback(
         embeddings
     )[0]
 
-    # Get indices of highest similarities
-    top_indices = np.argsort(
+    # Sort all records from highest similarity to lowest
+    sorted_indices = np.argsort(
         similarities
-    )[::-1][:top_k]
+    )[::-1]
 
     results = []
+    seen_comments = set()
 
-    for index in top_indices:
+    for index in sorted_indices:
+
+        # Ignore weak matches
+        if similarities[index] < threshold:
+            break
 
         feedback = feedback_records[index]
+
+        # Skip exact duplicate comments
+        if feedback.comment in seen_comments:
+            continue
+
+        seen_comments.add(feedback.comment)
 
         results.append({
             "comment_id": feedback.comment_id,
@@ -50,4 +62,16 @@ def search_similar_feedback(
             "similarity": float(similarities[index])
         })
 
-    return results
+        # Stop after top_k unique results
+        if len(results) == top_k:
+            break
+
+    return {
+    "query": query,
+    "results": results,
+    "message": (
+        "No sufficiently similar feedback found."
+        if not results
+        else "Similar records found."
+    )
+    }
