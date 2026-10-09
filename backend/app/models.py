@@ -21,5 +21,6 @@ class Feedback(Base):
     location = Column(String, nullable=True)
 
     embedding = Column(JSON, nullable=True)
+    cluster_id = Column(Integer, nullable=True, index=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
