@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import feedback
 from app.routes.feedback import (
+    fill_missing_topics,
     fill_missing_sentiments,
     fill_missing_embeddings
 )
@@ -25,18 +26,26 @@ Base.metadata.create_all(bind=engine)
 # ============================================================
 
 @app.on_event("startup")
+
 def run_sentiment_backfill():
 
     db = SessionLocal()
 
     try:
+        topic_count = fill_missing_topics(db)
 
-        updated_count = fill_missing_sentiments(db)
+        print(
+            f"Topic backfill completed: "
+            f"{topic_count} records updated."
+        )
+
+        sentiment_count = fill_missing_sentiments(db)
 
         print(
             f"Sentiment backfill completed: "
-            f"{updated_count} records updated."
+            f"{sentiment_count} records updated."
         )
+
         embedding_count = fill_missing_embeddings(db)
 
         print(
@@ -45,13 +54,13 @@ def run_sentiment_backfill():
         )
 
     except Exception as error:
+        db.rollback()
 
         print(
-            f"Sentiment backfill failed: {str(error)}"
+            f"Backfill failed: {str(error)}"
         )
 
     finally:
-
         db.close()
 
 

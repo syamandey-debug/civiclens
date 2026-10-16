@@ -28,7 +28,7 @@ from app.services.language_detection import detect_language
 from app.services.translation import translate_to_english
 from app.services.topic_classification import classify_topic
 from app.services.embedding_service import generate_embedding
-
+from app.services.semantic_clustering import cluster_feedback
 
 # --------------------------------------------------
 # Semantic search setup
@@ -328,7 +328,7 @@ def add_feedback(
 # BACKFILL MISSING SENTIMENTS
 # ============================================================
 
-def fill_missing_sentiments(db: Session):
+def fill_missing_topics(db: Session):
 
     missing_topics = (
         db.query(Feedback)
@@ -386,6 +386,62 @@ def fill_missing_sentiments(db: Session):
         db.commit()
 
     return updated_count
+
+
+
+def fill_missing_sentiments(db: Session):
+
+    missing_sentiments = (
+        db.query(Feedback)
+        .filter(Feedback.predicted_sentiment.is_(None))
+        .all()
+    )
+
+    print(
+        "MISSING SENTIMENT RECORDS:",
+        len(missing_sentiments)
+    )
+
+    updated_count = 0
+
+    for feedback in missing_sentiments:
+        try:
+            text_for_prediction = (
+                feedback.translated_comment
+                if feedback.translated_comment
+                else feedback.comment
+            )
+
+            sentiment_result = predict_sentiment(
+                text_for_prediction
+            )
+
+            feedback.predicted_sentiment = (
+                sentiment_result["sentiment"]
+            )
+
+            updated_count += 1
+
+            print(
+                "BACKFILLED SENTIMENT:",
+                feedback.comment_id,
+                feedback.predicted_sentiment
+            )
+
+        except Exception as error:
+            print(
+                "FAILED SENTIMENT:",
+                feedback.comment_id,
+                str(error)
+            )
+
+    if updated_count > 0:
+        db.commit()
+
+    return updated_count
+
+
+
 def fill_missing_embeddings(db: Session):
 
     missing_embeddings = (
@@ -442,6 +498,64 @@ def fill_missing_embeddings(db: Session):
 # ============================================================
 # UPLOAD CSV / EXCEL
 # ============================================================
+# ============================================================
+# SEMANTIC CLUSTERING ENDPOINT
+# ============================================================
+
+@router.post("/cluster")
+def run_semantic_clustering(
+    db: Session = Depends(get_db)
+):
+    try:
+        result = cluster_feedback(
+            db,
+            eps=0.25,
+            min_samples=2
+        )
+
+        return result
+
+    except Exception as error:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Semantic clustering failed: {str(error)}"
+        )
+
+@router.get("/clusters")
+def get_semantic_clusters(db: Session = Depends(get_db)):
+    feedback_records = (
+        db.query(Feedback)
+        .filter(Feedback.cluster_id.is_not(None))
+        .order_by(Feedback.cluster_id, Feedback.id)
+        .all()
+    )
+
+    clusters = {}
+
+    for feedback in feedback_records:
+        cluster_id = feedback.cluster_id
+
+        if cluster_id not in clusters:
+            clusters[cluster_id] = []
+
+        clusters[cluster_id].append({
+            "comment_id": feedback.comment_id,
+            "comment": feedback.comment,
+            "topic": feedback.predicted_topic,
+            "sentiment": feedback.predicted_sentiment,
+            "language": feedback.language,
+            "location": feedback.location
+        })
+
+    return {
+        "cluster_count": len(clusters),
+        "records_in_clusters": len(feedback_records),
+        "clusters": clusters
+    }
+
+
 
 @router.post("/upload")
 async def upload_feedback(
